@@ -1,22 +1,18 @@
 # Déploiement API GramPulse sur Render
-# Dashboard → grampulse-api → Settings → Instance Type → Standard ($25/mo)
+# Plan free : 0 $/mois — service qui s'endort après 15 min, DB dans /tmp (non persistante)
 
 services:
   - type: web
     name: grampulse-api
     runtime: docker
     dockerfilePath: ./Dockerfile.api
-    plan: standard
+    plan: free
     healthCheckPath: /health
-    disk:
-      name: grampulse-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: PYTHONPATH
         value: /app/api
       - key: GRAMPULSE_DB
-        value: /var/data/grampulse.db
+        value: /tmp/grampulse.db
       - key: INSTAGRAM_PROVIDER
         value: auto
       - key: MAX_ACCOUNTS_PER_MODEL
