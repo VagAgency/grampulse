@@ -18,6 +18,7 @@ from routes.linkscale import router as linkscale_router
 from routes.refresh import router as refresh_router
 from routes.team import router as team_router
 from routes.whop import router as whop_router
+from routes.restore import router as restore_router
 
 APP_URL = os.getenv("APP_URL", "http://localhost:3000")
 _extra_origins = os.getenv("ALLOWED_ORIGINS", "")
@@ -46,6 +47,7 @@ app.include_router(refresh_router)
 app.include_router(linkscale_router)
 app.include_router(team_router)
 app.include_router(whop_router)
+app.include_router(restore_router)
 
 
 @app.on_event("startup")

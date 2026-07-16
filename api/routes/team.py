@@ -40,7 +40,7 @@ def list_vas(x_user_email: Optional[str] = Header(default=None)):
 def create_va(body: CreateVaBody, x_user_email: Optional[str] = Header(default=None)):
     email = _user_email(x_user_email)
     try:
-        va = db.create_va(user_user_email=email, name=body.name, emoji=body.emoji)
+        va = db.create_va(user_email=email, name=body.name, emoji=body.emoji)
     except Exception as exc:
         if "UNIQUE" in str(exc):
             raise HTTPException(status_code=400, detail="Ce VA existe déjà.") from exc

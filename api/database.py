@@ -959,3 +959,118 @@ def has_active_access(email: str) -> bool:
     if dev and email.strip().lower() == dev:
         return True
     return is_active_subscriber(email)
+
+
+def clear_user_data(user_email: str) -> None:
+    email = user_email.strip().lower()
+    with get_db() as conn:
+        account_ids = [
+            row["id"]
+            for row in conn.execute(
+                "SELECT id FROM tracked_accounts WHERE user_email = ?",
+                (email,),
+            ).fetchall()
+        ]
+        for account_id in account_ids:
+            conn.execute("DELETE FROM daily_views WHERE tracked_account_id = ?", (account_id,))
+            conn.execute("DELETE FROM daily_clicks WHERE tracked_account_id = ?", (account_id,))
+            conn.execute("DELETE FROM account_snapshots WHERE tracked_account_id = ?", (account_id,))
+        conn.execute("DELETE FROM tracked_accounts WHERE user_email = ?", (email,))
+        conn.execute("DELETE FROM models WHERE user_email = ?", (email,))
+        conn.execute("DELETE FROM vas WHERE user_email = ?", (email,))
+
+
+def import_user_bundle(payload: dict) -> dict:
+    email = payload["user_email"].strip().lower()
+    clear_user_data(email)
+    ensure_user(email)
+
+    va_by_name: dict[str, int] = {}
+    for va in payload.get("vas", []):
+        created = create_va(user_email=email, name=va["name"], emoji=va.get("emoji"))
+        va_by_name[va["name"]] = created["id"]
+
+    model_by_name: dict[str, int] = {}
+    for model in payload.get("models", []):
+        created = create_model(user_email=email, name=model["name"])
+        model_by_name[model["name"]] = created["id"]
+
+    handle_to_id: dict[str, int] = {}
+    for acc in payload.get("accounts", []):
+        model_name = acc["model_name"]
+        if model_name not in model_by_name:
+            raise ValueError(f"Modèle inconnu pour @{acc['handle']}: {model_name}")
+        created = add_tracked_account(
+            user_email=email,
+            model_id=model_by_name[model_name],
+            handle=acc["handle"],
+            display_name=acc.get("display_name"),
+            profile_pic_url=acc.get("profile_pic_url"),
+            status=acc.get("status") or "actif",
+        )
+        handle_to_id[acc["handle"]] = created["id"]
+
+        if acc.get("linkscale_url"):
+            update_account_linkscale(
+                user_email=email,
+                account_id=created["id"],
+                linkscale_url=acc.get("linkscale_url"),
+                linkscale_host=acc.get("linkscale_host"),
+                linkscale_slug=acc.get("linkscale_slug"),
+            )
+
+        va_name = acc.get("va_name")
+        if va_name and va_name in va_by_name:
+            assign_account_va(
+                user_email=email,
+                account_id=created["id"],
+                va_id=va_by_name[va_name],
+            )
+
+    for point in payload.get("daily_views", []):
+        account_id = handle_to_id.get(point["handle"])
+        if account_id:
+            upsert_daily_view(
+                tracked_account_id=account_id,
+                day=point["date"],
+                views=int(point["views"]),
+                followers=point.get("followers"),
+            )
+
+    for point in payload.get("daily_clicks", []):
+        account_id = handle_to_id.get(point["handle"])
+        if account_id:
+            upsert_daily_click(
+                tracked_account_id=account_id,
+                day=point["date"],
+                clicks=int(point["clicks"]),
+            )
+
+    for snap in payload.get("snapshots", []):
+        account_id = handle_to_id.get(snap["handle"])
+        if not account_id:
+            continue
+        save_snapshot(
+            tracked_account_id=account_id,
+            followers=snap.get("followers"),
+            following=snap.get("following"),
+            posts_count=snap.get("posts_count"),
+            avg_engagement_rate=snap.get("avg_engagement_rate"),
+            avg_likes=snap.get("avg_likes"),
+            avg_comments=snap.get("avg_comments"),
+            health_score=int(snap.get("health_score") or 0),
+            health_label=str(snap.get("health_label") or "—"),
+            top_posts=snap.get("top_posts") or [],
+            analysis=snap.get("analysis") or {},
+            raw=snap.get("raw") or {},
+        )
+
+    return {
+        "user_email": email,
+        "models": len(model_by_name),
+        "vas": len(va_by_name),
+        "accounts": len(handle_to_id),
+        "daily_views": len(payload.get("daily_views", [])),
+        "daily_clicks": len(payload.get("daily_clicks", [])),
+        "snapshots": len(payload.get("snapshots", [])),
+    }

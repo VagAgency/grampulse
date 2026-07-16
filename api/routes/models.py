@@ -59,7 +59,7 @@ def list_models(x_user_email: Optional[str] = Header(default=None)):
 def create_model(body: CreateModelBody, x_user_email: Optional[str] = Header(default=None)):
     email = _user_email(x_user_email)
     try:
-        model = db.create_model(user_user_email=email, name=body.name)
+        model = db.create_model(user_email=email, name=body.name)
     except Exception as exc:
         if "UNIQUE" in str(exc):
             raise HTTPException(status_code=400, detail="Ce modèle existe déjà.") from exc
@@ -76,7 +76,7 @@ def update_model(
     email = _user_email(x_user_email)
     _assert_model(email, model_id)
     try:
-        model = db.update_model(user_user_email=email, model_id=model_id, name=body.name)
+        model = db.update_model(user_email=email, model_id=model_id, name=body.name)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not model:
@@ -219,7 +219,7 @@ def assign_account_va(
         raise HTTPException(status_code=404, detail="Compte introuvable.")
     try:
         updated = db.assign_account_va(
-            user_user_email=email,
+            user_email=email,
             account_id=account["id"],
             va_id=body.va_id,
         )
@@ -260,7 +260,7 @@ def assign_account_linkscale(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     updated = db.update_account_linkscale(
-        user_user_email=email,
+        user_email=email,
         account_id=account["id"],
         linkscale_url=raw_url,
         linkscale_host=host,
@@ -272,7 +272,7 @@ def assign_account_linkscale(
     sync_result = None
     if raw_url:
         try:
-            sync_result = sync_account_linkscale_clicks(updated, days=90, user_user_email=email)
+            sync_result = sync_account_linkscale_clicks(updated, days=90, user_email=email)
         except Exception:
             sync_result = {"synced": False}
 
