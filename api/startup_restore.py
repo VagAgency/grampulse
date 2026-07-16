@@ -12,8 +12,8 @@ logger = logging.getLogger("grampulse.startup_restore")
 
 
 def maybe_restore_from_bundle(bundle_path: Path = DEFAULT_BUNDLE_PATH) -> dict | None:
-    enabled = os.getenv("GRAMPULSE_AUTO_RESTORE", "").strip().lower()
-    if enabled not in ("1", "true", "yes"):
+    disabled = os.getenv("GRAMPULSE_AUTO_RESTORE", "true").strip().lower()
+    if disabled in ("0", "false", "no", "off"):
         return None
 
     if not bundle_path.exists():

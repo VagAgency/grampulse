@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api/ .
 
 ENV GRAMPULSE_DB=/var/data/grampulse.db
+ENV GRAMPULSE_AUTO_RESTORE=true
 ENV PYTHONPATH=/app/api
 ENV PORT=8000
 

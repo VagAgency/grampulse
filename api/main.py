@@ -57,18 +57,28 @@ def startup() -> None:
     logging.basicConfig(level=logging.INFO)
     init_db()
     from startup_restore import maybe_restore_from_bundle
+    from backup_io import DEFAULT_BUNDLE_PATH
 
     result = maybe_restore_from_bundle()
-    if result and result.get("restored"):
-        logging.getLogger("grampulse").info("Auto-restore: %s", result)
+    log = logging.getLogger("grampulse")
+    if result:
+        log.info("Startup restore: %s", result)
+    elif DEFAULT_BUNDLE_PATH.exists():
+        log.warning(
+            "Base vide et sauvegarde présente mais restore non exécuté — vérifier GRAMPULSE_AUTO_RESTORE"
+        )
 
 
 @app.get("/health")
 def health():
     from instagram_provider import get_instagram_mode
     from linkscale_provider import is_linkscale_configured
+    from backup_io import DEFAULT_BUNDLE_PATH
+    import database as db
 
     mode = get_instagram_mode()
+    bypass = os.getenv("DEV_BYPASS_EMAIL", "").strip().lower()
+    model_count = len(db.list_models(bypass)) if bypass else 0
     return {
         "status": "ok",
         "product": "GramPulse",
@@ -77,6 +87,10 @@ def health():
         "apify_configured": bool(os.getenv("APIFY_API_TOKEN")),
         "mock_active": mode == "mock",
         "linkscale_configured": is_linkscale_configured(),
+        "db_path": str(db.DB_PATH),
+        "auto_restore": os.getenv("GRAMPULSE_AUTO_RESTORE", "true"),
+        "backup_bundle_present": DEFAULT_BUNDLE_PATH.exists(),
+        "dev_models_count": model_count,
     }
 
 
