@@ -186,7 +186,7 @@ export function HeaderRefreshActions() {
         disabled={running}
         title="Actualiser les stats Instagram de tous les comptes"
       >
-        {running && kind === "accounts" ? "Refresh comptes…" : "Refresh comptes"}
+        {running && kind === "accounts" ? "Actualisation…" : "↻ Comptes"}
       </button>
       <button
         type="button"
@@ -197,7 +197,7 @@ export function HeaderRefreshActions() {
         disabled={running}
         title="Synchroniser les clics Linkscale sans toucher aux comptes Instagram"
       >
-        {running && kind === "links" ? "Refresh liens…" : "Refresh liens"}
+        {running && kind === "links" ? "Sync…" : "↻ Liens"}
       </button>
     </div>
   );

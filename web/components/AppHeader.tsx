@@ -25,9 +25,31 @@ export function AppHeader({ email, active }: Props) {
   const router = useRouter();
 
   return (
-    <header className="app-nav-wrap">
-      <div className="app-nav-pill">
-        <BrandLogo href="/dashboard" size={32} />
+    <header className="app-header">
+      <div className="app-header-card">
+        <div className="app-header-top">
+          <BrandLogo href="/dashboard" size={32} className="app-header-brand" />
+          <HeaderActions className="app-header-tools">
+            <Link
+              href="/account"
+              className="btn btn-ghost btn-sm"
+              title={email || "Mon compte"}
+            >
+              Compte
+            </Link>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                clearSession();
+                router.push("/login");
+              }}
+            >
+              Déconnexion
+            </button>
+          </HeaderActions>
+        </div>
+
         <nav className="app-nav" aria-label="Navigation principale">
           {NAV.map((item) => (
             <Link
@@ -39,22 +61,6 @@ export function AppHeader({ email, active }: Props) {
             </Link>
           ))}
         </nav>
-        <HeaderActions>
-          {email ? <span className="app-nav-email">{email}</span> : null}
-          <Link href="/account" className="btn btn-ghost btn-sm">
-            Compte
-          </Link>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => {
-              clearSession();
-              router.push("/login");
-            }}
-          >
-            Déconnexion
-          </button>
-        </HeaderActions>
       </div>
       <BulkRefreshProgress />
     </header>
