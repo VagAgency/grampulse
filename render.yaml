@@ -1,18 +1,22 @@
 # Déploiement API GramPulse sur Render
-# Plan free : 0 $/mois — service qui s'endort après 15 min, DB dans /tmp (non persistante)
+# Starter + disque persistant : les données SQLite survivent aux redéploiements
 
 services:
   - type: web
     name: grampulse-api
     runtime: docker
     dockerfilePath: ./Dockerfile.api
-    plan: free
+    plan: starter
     healthCheckPath: /health
+    disk:
+      name: grampulse-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHONPATH
         value: /app/api
       - key: GRAMPULSE_DB
-        value: /tmp/grampulse.db
+        value: /var/data/grampulse.db
       - key: INSTAGRAM_PROVIDER
         value: auto
       - key: MAX_ACCOUNTS_PER_MODEL
@@ -44,4 +48,6 @@ services:
       - key: WHOP_CHECKOUT_URL
         sync: false
       - key: DEV_BYPASS_EMAIL
+        sync: false
+      - key: RESTORE_SECRET
         sync: false
