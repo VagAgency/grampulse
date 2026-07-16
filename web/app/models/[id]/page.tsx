@@ -60,6 +60,7 @@ export default function ModelPage() {
   const [vas, setVas] = useState<VaMember[]>([]);
   const [assigningHandle, setAssigningHandle] = useState<string | null>(null);
   const [linkscaleHandle, setLinkscaleHandle] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const stored = getStoredEmail();
@@ -180,10 +181,19 @@ export default function ModelPage() {
     if (!email || !handle.trim()) return;
     setAdding(true);
     setError("");
+    setNotice("");
     try {
-      await addAccountToModel(email, modelId, handle.trim());
+      const result = await addAccountToModel(email, modelId, handle.trim());
       setHandle("");
       await load(email);
+      if (result.syncing) {
+        setNotice(result.message || "Synchronisation Instagram en cours (30–60 s)…");
+        window.setTimeout(() => {
+          if (email) void load(email);
+        }, 12000);
+      } else {
+        setNotice("");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
     } finally {
@@ -235,10 +245,11 @@ export default function ModelPage() {
           ) : null}
         </AppSubHeader>
 
+        {error ? <p className="status err app-inline-error">{error}</p> : null}
+        {notice ? <p className="status ok app-inline-notice">{notice}</p> : null}
+
         {loading ? (
           <p className="hint">Chargement…</p>
-        ) : error ? (
-          <p className="status err">{error}</p>
         ) : data ? (
           <>
             <ModelNameEditor
@@ -465,7 +476,9 @@ export default function ModelPage() {
               </table>
             </div>
           </>
-        ) : null}
+        ) : (
+          <p className="hint">Modèle introuvable.</p>
+        )}
     </AppShell>
   );
 }

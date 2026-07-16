@@ -28,8 +28,13 @@ async function fetchApi(input: string, init?: RequestInit): Promise<Response> {
   try {
     return await fetch(input, init);
   } catch {
+    const onProd =
+      typeof window !== "undefined" &&
+      !window.location.hostname.includes("localhost");
     throw new Error(
-      "Impossible de joindre l'API. Lance : cd api && uvicorn main:app --reload --port 8000"
+      onProd
+        ? "Impossible de joindre l'API (api.grampulse.app). Réessaie dans quelques secondes."
+        : "Impossible de joindre l'API. Lance : cd api && uvicorn main:app --reload --port 8000"
     );
   }
 }

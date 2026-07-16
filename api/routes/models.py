@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -11,9 +12,11 @@ from auth import require_access
 import database as db
 from linkscale_provider import parse_linkscale_url, resolve_tracking_host, fetch_project_stats
 from linkscale_sync import sync_account_linkscale_clicks
+from sync import sync_account
 from video_metrics import build_leaderboard, collect_account_posts, enrich_posts, sort_posts
 
 router = APIRouter(prefix="/models", tags=["models"])
+logger = logging.getLogger("grampulse.models")
 
 MAX_ACCOUNTS_PER_MODEL = int(os.getenv("MAX_ACCOUNTS_PER_MODEL", "20"))
 
@@ -47,6 +50,13 @@ def _assert_model(email: str, model_id: int) -> dict:
     if not model:
         raise HTTPException(status_code=404, detail="Modèle introuvable.")
     return model
+
+
+def _sync_account_background(email: str, model_id: int, handle: str) -> None:
+    try:
+        sync_account(email, model_id, handle, force_refresh=True)
+    except Exception as exc:
+        logger.exception("Sync Instagram échoué pour @%s: %s", handle, exc)
 
 
 @router.get("")
@@ -175,15 +185,32 @@ def list_accounts(model_id: int, x_user_email: Optional[str] = Header(default=No
 def add_account(
     model_id: int,
     body: AddAccountBody,
+    background_tasks: BackgroundTasks,
     x_user_email: Optional[str] = Header(default=None),
 ):
     email = _user_email(x_user_email)
     _assert_model(email, model_id)
+    handle = body.handle.lstrip("@").lower()
     accounts = db.list_accounts_for_model(email, model_id)
     if len(accounts) >= MAX_ACCOUNTS_PER_MODEL:
         raise HTTPException(status_code=400, detail=f"Limite : {MAX_ACCOUNTS_PER_MODEL} comptes par modèle.")
-    result = sync_account(email, model_id, body.handle)
-    return result
+
+    existing = db.get_tracked_account(email, handle)
+    if existing and existing.get("model_id") == model_id:
+        raise HTTPException(status_code=400, detail="Ce compte est déjà sur ce modèle.")
+    if existing and existing.get("model_id") != model_id:
+        raise HTTPException(
+            status_code=400,
+            detail=f"@{handle} est déjà suivi sur un autre modèle.",
+        )
+
+    account = db.add_tracked_account(user_email=email, model_id=model_id, handle=handle)
+    background_tasks.add_task(_sync_account_background, email, model_id, handle)
+    return {
+        "account": account,
+        "syncing": True,
+        "message": "Compte ajouté — synchronisation Instagram en cours (30–60 s).",
+    }
 
 
 @router.post("/{model_id}/accounts/{handle}/refresh")
