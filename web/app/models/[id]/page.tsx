@@ -7,8 +7,8 @@ import { useOnGlobalRefresh } from "@/hooks/useOnGlobalRefresh";
 import { ChangeBadge } from "@/components/ChangeBadge";
 import { ChartSeries, MultiViewsChart, seriesColor } from "@/components/MultiViewsChart";
 import { ModelNameEditor } from "@/components/ModelNameEditor";
-import { BulkRefreshProgress } from "@/components/BulkRefreshProvider";
-import { HeaderActions } from "@/components/HeaderActions";
+import { AppShell } from "@/components/AppShell";
+import { AppSubHeader } from "@/components/AppSubHeader";
 import { PeriodBar } from "@/components/PeriodBar";
 import { StatusBadge } from "@/components/StatusBadge";
 import { VideoLeaderboard } from "@/components/VideoLeaderboard";
@@ -221,35 +221,31 @@ export default function ModelPage() {
   }
 
   return (
-    <main className="dashboard">
-      <div className="container">
-        <header className="dashboard-header">
-          <Link href="/dashboard" className="btn btn-ghost">← Dashboard</Link>
-          {data && (
-            <HeaderActions>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={onDeleteModel}
-                disabled={deletingModel}
-              >
-                {deletingModel ? "Suppression…" : "Supprimer la créatrice"}
-              </button>
-            </HeaderActions>
-          )}
-        </header>
-        <BulkRefreshProgress />
+    <AppShell email={email} showNav={false}>
+        <AppSubHeader backHref="/dashboard" backLabel="Dashboard">
+          {data ? (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={onDeleteModel}
+              disabled={deletingModel}
+            >
+              {deletingModel ? "Suppression…" : "Supprimer la créatrice"}
+            </button>
+          ) : null}
+        </AppSubHeader>
 
         {loading ? (
           <p className="hint">Chargement…</p>
         ) : error ? (
           <p className="status err">{error}</p>
         ) : data ? (
-          <section className="dashboard-main">
+          <>
             <ModelNameEditor
               modelId={modelId}
               name={data.model.name}
               as="h1"
+              className="app-page-title"
               onUpdated={(name) =>
                 setData((prev) => (prev ? { ...prev, model: { ...prev.model, name } } : prev))
               }
@@ -468,9 +464,8 @@ export default function ModelPage() {
                 </tbody>
               </table>
             </div>
-          </section>
+          </>
         ) : null}
-      </div>
-    </main>
+    </AppShell>
   );
 }

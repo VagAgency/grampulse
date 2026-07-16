@@ -8,8 +8,8 @@ import { ChartSeries, MultiViewsChart } from "@/components/MultiViewsChart";
 import { ChangeBadge } from "@/components/ChangeBadge";
 import { CHART_RANGES, PeriodBar } from "@/components/PeriodBar";
 import { ReelGallery } from "@/components/ReelGallery";
-import { BulkRefreshProgress } from "@/components/BulkRefreshProvider";
-import { HeaderActions } from "@/components/HeaderActions";
+import { AppShell } from "@/components/AppShell";
+import { AppSubHeader } from "@/components/AppSubHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   AccountDetail,
@@ -137,19 +137,14 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="dashboard">
-      <div className="container detail-layout">
-        <header className="dashboard-header detail-header-actions">
-          <Link href={`/models/${modelId}`} className="btn btn-ghost">← Retour au modèle</Link>
-          {data && (
-            <HeaderActions>
-              <button type="button" className="btn btn-primary" disabled={refreshing} onClick={onRefresh}>
-                {refreshing ? "Actualisation…" : "Actualiser les données"}
-              </button>
-            </HeaderActions>
-          )}
-        </header>
-        <BulkRefreshProgress />
+    <AppShell email={null} showNav={false}>
+        <AppSubHeader backHref={`/models/${modelId}`} backLabel="Retour au modèle">
+          {data ? (
+            <button type="button" className="btn btn-primary btn-sm" disabled={refreshing} onClick={onRefresh}>
+              {refreshing ? "Actualisation…" : "Actualiser"}
+            </button>
+          ) : null}
+        </AppSubHeader>
 
         {loading ? (
           <p className="hint">Chargement…</p>
@@ -242,7 +237,6 @@ export default function AccountPage() {
             </section>
           </>
         ) : null}
-      </div>
-    </main>
+    </AppShell>
   );
 }

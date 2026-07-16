@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { AppPageHeader } from "@/components/AppPageHeader";
 import { useOnGlobalRefresh } from "@/hooks/useOnGlobalRefresh";
 import {
   TeamSuivi,
@@ -66,19 +67,16 @@ export default function SuiviPage() {
     : "";
 
   return (
-    <main className="dashboard">
-      <div className="container">
-        <AppHeader email={email} active="suivi" />
-
-        <section className="dashboard-main">
-          <h1 style={{ margin: "0 0 4px" }}>Suivi</h1>
-          <p className="hint" style={{ marginBottom: 24 }}>
-            Publications du jour par VA — reels, posts et stories (stories via API bientôt).
-          </p>
+    <AppShell email={email} active="suivi">
+          <AppPageHeader
+            eyebrow="Activité équipe"
+            title={<>Suivi <span className="gradient-text">journalier</span></>}
+            subtitle="Publications du jour par VA — reels, posts et stories (stories via API bientôt)."
+          />
 
           {error && <p className="status err">{error}</p>}
 
-          <div className="suivi-date-bar card" style={{ padding: 16, marginBottom: 20 }}>
+          <div className="suivi-date-bar card chart-card" style={{ marginBottom: 20 }}>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => shiftDay(-1)} disabled={!data}>
               ← Jour préc.
             </button>
@@ -179,8 +177,6 @@ export default function SuiviPage() {
               )}
             </>
           ) : null}
-        </section>
-      </div>
-    </main>
+    </AppShell>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { LandingBackground } from "@/components/LandingBackground";
 import { getStoredEmail, setStoredEmail } from "@/lib/api";
 import {
   fetchSubscriptionStatus,
@@ -54,7 +55,8 @@ export default function LoginPage() {
 
   return (
     <main className="auth-page">
-      <div className="card auth-card">
+      <LandingBackground />
+      <div className="card auth-card card-interactive">
         <BrandLogo href="/" size={48} className="brand-logo-centered" />
         <h1>Connexion</h1>
         <p className="hint">

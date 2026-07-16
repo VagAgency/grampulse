@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { AppPageHeader } from "@/components/AppPageHeader";
 import { useOnGlobalRefresh } from "@/hooks/useOnGlobalRefresh";
 import { PeriodBar } from "@/components/PeriodBar";
 import { VideoLeaderboard } from "@/components/VideoLeaderboard";
@@ -53,15 +54,12 @@ export default function LeaderboardPage() {
   }, [email, load]));
 
   return (
-    <main className="dashboard">
-      <div className="container">
-        <AppHeader email={email} active="leaderboard" />
-
-        <section className="dashboard-main">
-          <h1 style={{ margin: "0 0 4px" }}>Top vidéos</h1>
-          <p className="hint" style={{ marginBottom: 24 }}>
-            Classement global de tes meilleurs reels — performance ou conversion.
-          </p>
+    <AppShell email={email} active="leaderboard">
+          <AppPageHeader
+            eyebrow="Performance contenu"
+            title={<>Top <span className="gradient-text">vidéos</span></>}
+            subtitle="Classement global de tes meilleurs reels — performance ou conversion."
+          />
 
           {error && <p className="status err">{error}</p>}
           {loading ? (
@@ -70,7 +68,7 @@ export default function LeaderboardPage() {
             <>
               <PeriodBar days={chartDays} onChangeDays={setChartDays} />
 
-              <section className="card" style={{ padding: 20 }} key={`videos-${videoMode}-${chartDays}`}>
+              <section className="card chart-card" key={`videos-${videoMode}-${chartDays}`}>
                 <VideoLeaderboard
                   videos={data.video_leaderboard || []}
                   days={chartDays}
@@ -89,8 +87,6 @@ export default function LeaderboardPage() {
               </p>
             </>
           ) : null}
-        </section>
-      </div>
-    </main>
+    </AppShell>
   );
 }

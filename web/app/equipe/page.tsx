@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { AppPageHeader } from "@/components/AppPageHeader";
 import { useOnGlobalRefresh } from "@/hooks/useOnGlobalRefresh";
 import { PeriodBar } from "@/components/PeriodBar";
 import {
@@ -91,19 +92,16 @@ export default function EquipePage() {
   }
 
   return (
-    <main className="dashboard">
-      <div className="container">
-        <AppHeader email={email} active="equipe" />
-
-        <section className="dashboard-main">
-          <h1 style={{ margin: "0 0 4px" }}>Rang équipe</h1>
-          <p className="hint" style={{ marginBottom: 24 }}>
-            Classement des VA selon les performances de leurs comptes attitrés.
-          </p>
+    <AppShell email={email} active="equipe">
+          <AppPageHeader
+            eyebrow="Gestion d'équipe"
+            title={<>Rang <span className="gradient-text">équipe</span></>}
+            subtitle="Classement des VA selon les performances de leurs comptes attitrés."
+          />
 
           {error && <p className="status err">{error}</p>}
 
-          <div className="card team-manage-card" style={{ padding: 20, marginBottom: 20 }}>
+          <div className="card team-manage-card chart-card" style={{ marginBottom: 20 }}>
             <h2 style={{ margin: "0 0 12px", fontSize: "1.05rem" }}>Assistants virtuels</h2>
             <form className="team-va-form" onSubmit={onCreateVa}>
               <input
@@ -226,8 +224,6 @@ export default function EquipePage() {
               )}
             </>
           ) : null}
-        </section>
-      </div>
-    </main>
+    </AppShell>
   );
 }

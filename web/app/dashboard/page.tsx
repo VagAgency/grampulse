@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { AppPageHeader } from "@/components/AppPageHeader";
 import { LoadingDots } from "@/components/LoadingDots";
 import { Reveal } from "@/components/Reveal";
 import { ChartSeries, MultiViewsChart, seriesColor } from "@/components/MultiViewsChart";
@@ -195,20 +196,21 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="dashboard">
-      <div className="container">
-        <AppHeader email={email} active="dashboard" />
-
-        <section className="dashboard-main">
-          <h1 style={{ margin: "0 0 4px" }}>Dashboard global</h1>
-          <p className="hint" style={{ marginBottom: 24 }}>
-            Courbe par modèle — clique sur une légende pour masquer / afficher.
-            {apifyMode ? (
-              <span className="source-badge source-apify"> {providerLabel}</span>
-            ) : (
-              <span className="source-badge source-mock"> Mode démo</span>
-            )}
-          </p>
+    <AppShell email={email} active="dashboard">
+          <AppPageHeader
+            eyebrow="Vue globale"
+            title={<>Dashboard <span className="gradient-text">global</span></>}
+            subtitle={
+              <>
+                Courbe par modèle — clique sur une légende pour masquer / afficher.
+                {apifyMode ? (
+                  <span className="source-badge source-apify"> {providerLabel}</span>
+                ) : (
+                  <span className="source-badge source-mock"> Mode démo</span>
+                )}
+              </>
+            }
+          />
 
           {error && <p className="status err">{error}</p>}
           {loading ? (
@@ -242,15 +244,15 @@ export default function DashboardPage() {
               </PeriodBar>
 
               <div className="kpi-grid" key={`kpi-${chartMode}-${chartDays}`}>
-                <div className="card kpi-card">
+                <div className="card kpi-card card-interactive">
                   <span className="hint">Modèles</span>
                   <strong className="kpi-value">{data.summary.models_count}</strong>
                 </div>
-                <div className="card kpi-card">
+                <div className="card kpi-card card-interactive">
                   <span className="hint">Comptes IG</span>
                   <strong className="kpi-value">{data.summary.accounts_count}</strong>
                 </div>
-                <div className="card kpi-card">
+                <div className="card kpi-card card-interactive">
                   <span className="hint">
                     {chartMode === "followers"
                       ? "Abonnés (total)"
@@ -266,7 +268,7 @@ export default function DashboardPage() {
                         : formatNumber(periodViews)}
                   </strong>
                 </div>
-                <div className="card kpi-card">
+                <div className="card kpi-card card-interactive">
                   <span className="hint">Période</span>
                   <strong className="kpi-value kpi-period">{formatPeriodLabel(chartDays)}</strong>
                 </div>
@@ -314,7 +316,7 @@ export default function DashboardPage() {
                 <div className="models-grid">
                   {data.models.map((model, index) => (
                     <Reveal key={model.id} delay={index * 60}>
-                      <article className="card model-card">
+                      <article className="card model-card card-interactive">
                       <div className="model-card-top">
                         <div className="model-card-main">
                           <ModelNameEditor
@@ -360,8 +362,6 @@ export default function DashboardPage() {
               )}
             </>
           ) : null}
-        </section>
-      </div>
-    </main>
+    </AppShell>
   );
 }

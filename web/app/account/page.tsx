@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { AppPageHeader } from "@/components/AppPageHeader";
 import { clearSession, getStoredEmail, setStoredEmail } from "@/lib/api";
 import {
   API,
@@ -111,19 +112,17 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="dashboard">
-      <div className="container">
-        <AppHeader email={email} active="dashboard" />
-        <section className="dashboard-main">
-          <h1 style={{ margin: "0 0 4px" }}>Mon compte</h1>
-          <p className="hint" style={{ marginBottom: 24 }}>
-            Gère ton abonnement GramPulse et accède au dashboard.
-          </p>
+    <AppShell email={email} active="dashboard">
+          <AppPageHeader
+            eyebrow="Espace membre"
+            title="Mon compte"
+            subtitle="Gère ton abonnement GramPulse et accède au dashboard."
+          />
 
           {loading ? (
             <p className="hint">Chargement…</p>
           ) : status ? (
-            <div className="card" style={{ maxWidth: 520 }}>
+            <div className="card chart-card" style={{ maxWidth: 520 }}>
               <p className="hint">Email</p>
               <p style={{ margin: "4px 0 16px", fontWeight: 600 }}>{status.email}</p>
 
@@ -195,8 +194,6 @@ export default function AccountPage() {
               </button>
             </div>
           ) : null}
-        </section>
-      </div>
-    </main>
+    </AppShell>
   );
 }
