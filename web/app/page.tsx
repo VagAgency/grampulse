@@ -74,6 +74,7 @@ export default function LandingPage() {
         <div className="landing-glow landing-glow-1" />
         <div className="landing-glow landing-glow-2" />
         <div className="landing-glow landing-glow-3" />
+        <div className="landing-glow landing-glow-4" />
       </div>
 
       <header className="landing-nav">
