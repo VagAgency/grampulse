@@ -1,6 +1,6 @@
 export const API =
   process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production" ? "http://localhost:8000" : "http://localhost:8000");
+  (process.env.NODE_ENV === "production" ? "https://api.grampulse.app" : "http://localhost:8000");
 
 export const SESSION_KEY = "grampulse_email";
 
