@@ -70,8 +70,11 @@ export default function LandingPage() {
 
   return (
     <main className="landing">
-      <div className="landing-glow landing-glow-1" />
-      <div className="landing-glow landing-glow-2" />
+      <div className="landing-glows" aria-hidden="true">
+        <div className="landing-glow landing-glow-1" />
+        <div className="landing-glow landing-glow-2" />
+        <div className="landing-glow landing-glow-3" />
+      </div>
 
       <header className="landing-nav">
         <div className="container landing-nav-inner">
