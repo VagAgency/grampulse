@@ -52,7 +52,15 @@ app.include_router(restore_router)
 
 @app.on_event("startup")
 def startup() -> None:
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
     init_db()
+    from startup_restore import maybe_restore_from_bundle
+
+    result = maybe_restore_from_bundle()
+    if result and result.get("restored"):
+        logging.getLogger("grampulse").info("Auto-restore: %s", result)
 
 
 @app.get("/health")

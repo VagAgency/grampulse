@@ -17,6 +17,8 @@ services:
         value: /app/api
       - key: GRAMPULSE_DB
         value: /var/data/grampulse.db
+      - key: GRAMPULSE_AUTO_RESTORE
+        value: "true"
       - key: INSTAGRAM_PROVIDER
         value: auto
       - key: MAX_ACCOUNTS_PER_MODEL
