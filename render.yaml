@@ -1,0 +1,51 @@
+# Déploiement API GramPulse sur Render
+# Dashboard → grampulse-api → Settings → Instance Type → Standard ($25/mo)
+
+services:
+  - type: web
+    name: grampulse-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.api
+    plan: standard
+    healthCheckPath: /health
+    disk:
+      name: grampulse-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHONPATH
+        value: /app/api
+      - key: GRAMPULSE_DB
+        value: /var/data/grampulse.db
+      - key: INSTAGRAM_PROVIDER
+        value: auto
+      - key: MAX_ACCOUNTS_PER_MODEL
+        value: "20"
+      - key: LINKSCALE_TIMEZONE
+        value: Europe/Paris
+      - key: GRAMPULSE_PLAN_LABEL
+        value: GramPulse Pro
+      - key: GRAMPULSE_PRICE_LABEL
+        value: 49 €/mois
+      - key: APP_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: HIKERAPI_ACCESS_KEY
+        sync: false
+      - key: LINKSCALE_API_KEY
+        sync: false
+      - key: WHOP_API_KEY
+        sync: false
+      - key: WHOP_WEBHOOK_SECRET
+        sync: false
+      - key: WHOP_PLAN_ID
+        sync: false
+      - key: WHOP_PRODUCT_ID
+        sync: false
+      - key: WHOP_CHECKOUT_URL
+        sync: false
+      - key: WHOP_RETURN_URL
+        sync: false
+      - key: DEV_BYPASS_EMAIL
+        sync: false
