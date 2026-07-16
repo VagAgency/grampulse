@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import { LoadingDots } from "@/components/LoadingDots";
+import { Reveal } from "@/components/Reveal";
 import { ChartSeries, MultiViewsChart, seriesColor } from "@/components/MultiViewsChart";
 import { ModelCreateForm } from "@/components/ModelCreateForm";
 import { ModelNameEditor } from "@/components/ModelNameEditor";
@@ -210,7 +212,7 @@ export default function DashboardPage() {
 
           {error && <p className="status err">{error}</p>}
           {loading ? (
-            <p className="hint">Chargement…</p>
+            <LoadingDots />
           ) : data ? (
             <>
               <PeriodBar days={chartDays} onChangeDays={setChartDays}>
@@ -310,8 +312,9 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="models-grid">
-                  {data.models.map((model) => (
-                    <article key={model.id} className="card model-card">
+                  {data.models.map((model, index) => (
+                    <Reveal key={model.id} delay={index * 60}>
+                      <article className="card model-card">
                       <div className="model-card-top">
                         <div className="model-card-main">
                           <ModelNameEditor
@@ -351,6 +354,7 @@ export default function DashboardPage() {
                         </button>
                       </div>
                     </article>
+                    </Reveal>
                   ))}
                 </div>
               )}
