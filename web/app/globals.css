@@ -191,6 +191,34 @@ input:focus {
   font-weight: 700;
 }
 
+.brand-logo-link {
+  display: inline-flex;
+  text-decoration: none;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo-centered {
+  flex-direction: column;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.brand-logo-image {
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.brand-logo-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .landing-hero {
   padding: 72px 0 48px;
   text-align: center;
@@ -356,6 +384,12 @@ input:focus {
 .auth-card {
   width: min(420px, 100%);
   padding: 28px;
+  text-align: center;
+}
+
+.auth-card h1,
+.auth-card form {
+  text-align: left;
 }
 
 .auth-card h1 {

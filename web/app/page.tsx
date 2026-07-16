@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { createCheckout } from "@/lib/auth";
 
 const FEATURES = [
@@ -73,9 +74,7 @@ export default function LandingPage() {
 
       <header className="landing-nav">
         <div className="container landing-nav-inner">
-          <Link href="/" className="brand">
-            <span className="gradient-text brand-name">GramPulse</span>
-          </Link>
+          <BrandLogo href="/" size={36} />
           <nav className="landing-nav-links">
             <a href="#features">Fonctionnalités</a>
             <a href="#pricing">Tarifs</a>

@@ -6,6 +6,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "GramPulse — Analytics Instagram",
   description: "Analyse la santé de n'importe quel compte Instagram public.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 const themeInitScript = `

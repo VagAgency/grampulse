@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BrandLogo } from "@/components/BrandLogo";
 import { BulkRefreshProgress } from "@/components/BulkRefreshProvider";
 import { HeaderActions } from "@/components/HeaderActions";
 import { clearSession } from "@/lib/api";
@@ -27,7 +28,7 @@ export function AppHeader({ email, active }: Props) {
     <>
       <header className="dashboard-header">
         <div>
-          <Link href="/" className="gradient-text brand-name">GramPulse</Link>
+          <BrandLogo href="/" size={34} />
           {email && <p className="hint" style={{ margin: "4px 0 0" }}>{email}</p>}
           <nav className="app-nav" aria-label="Navigation principale">
             {NAV.map((item) => (
