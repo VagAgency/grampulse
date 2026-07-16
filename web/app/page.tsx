@@ -131,7 +131,7 @@ export default function LandingPage() {
         <div className="card landing-pricing-card">
           <p className="hint">GramPulse Pro</p>
           <p className="landing-price">
-            49 <span>€/mois</span>
+            99 <span>€/mois</span>
           </p>
           <ul className="landing-pricing-list">
             <li>Dashboard global multi-modèles</li>
@@ -155,7 +155,7 @@ export default function LandingPage() {
             disabled={loading}
             onClick={() => void subscribe()}
           >
-            {loading ? "Redirection…" : "S'abonner — 49 €/mois"}
+            {loading ? "Redirection…" : "S'abonner — 99 €/mois"}
           </button>
           <p className="hint" style={{ marginTop: 12, textAlign: "center" }}>
             Paiement sécurisé via Whop · Annulation à tout moment

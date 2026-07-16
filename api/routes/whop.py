@@ -20,7 +20,7 @@ WHOP_RETURN_URL = os.getenv("WHOP_RETURN_URL", "")
 APP_URL = os.getenv("APP_URL", "http://localhost:3000")
 WHOP_API_BASE = "https://api.whop.com/api/v1"
 PLAN_LABEL = os.getenv("GRAMPULSE_PLAN_LABEL", "GramPulse Pro")
-PRICE_LABEL = os.getenv("GRAMPULSE_PRICE_LABEL", "49 €/mois")
+PRICE_LABEL = os.getenv("GRAMPULSE_PRICE_LABEL", "99 €/mois")
 
 ACTIVE_STATUSES = {"active", "trialing"}
 

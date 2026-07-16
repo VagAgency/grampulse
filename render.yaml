@@ -22,7 +22,7 @@ services:
       - key: GRAMPULSE_PLAN_LABEL
         value: GramPulse Pro
       - key: GRAMPULSE_PRICE_LABEL
-        value: 49 €/mois
+        value: 99 €/mois
       - key: APP_URL
         sync: false
       - key: ALLOWED_ORIGINS
@@ -31,17 +31,17 @@ services:
         sync: false
       - key: LINKSCALE_API_KEY
         sync: false
+      - key: WHOP_PLAN_ID
+        value: plan_duJvdhlQGgfDY
+      - key: WHOP_PRODUCT_ID
+        value: prod_dJcY2U9SHlGwh
+      - key: WHOP_RETURN_URL
+        value: https://grampulse.app/account?checkout=success
       - key: WHOP_API_KEY
         sync: false
       - key: WHOP_WEBHOOK_SECRET
         sync: false
-      - key: WHOP_PLAN_ID
-        sync: false
-      - key: WHOP_PRODUCT_ID
-        sync: false
       - key: WHOP_CHECKOUT_URL
-        sync: false
-      - key: WHOP_RETURN_URL
         sync: false
       - key: DEV_BYPASS_EMAIL
         sync: false

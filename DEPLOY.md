@@ -45,12 +45,14 @@ Test : `https://grampulse-api.onrender.com/health`
 | `LINKSCALE_TIMEZONE` | `Europe/Paris` |
 | `WHOP_API_KEY` | Clé API Whop (`apik_...`) |
 | `WHOP_WEBHOOK_SECRET` | Secret webhook Whop (`whsec_...`) |
-| `WHOP_PLAN_ID` | ID du plan Whop (`plan_...`) |
-| `WHOP_PRODUCT_ID` | ID produit Whop (optionnel) |
+| `WHOP_PLAN_ID` | `plan_duJvdhlQGgfDY` |
+| `WHOP_PRODUCT_ID` | `prod_dJcY2U9SHlGwh` |
+| `WHOP_CHECKOUT_URL` | *(laisser vide — le checkout utilise `plan_duJvdhlQGgfDY`)* |
+| `WHOP_RETURN_URL` | `https://grampulse.app/account?checkout=success` |
 | `APP_URL` | `https://grampulse.com` |
 | `ALLOWED_ORIGINS` | `https://grampulse.com,https://www.grampulse.com` |
 | `GRAMPULSE_PLAN_LABEL` | `GramPulse Pro` |
-| `GRAMPULSE_PRICE_LABEL` | `49 €/mois` |
+| `GRAMPULSE_PRICE_LABEL` | `99 €/mois` |
 | `DEV_BYPASS_EMAIL` | *(vide en prod — ton email en dev local)* |
 
 `GRAMPULSE_DB` est déjà défini dans `render.yaml` → `/var/data/grampulse.db` (disque persistant).
@@ -102,7 +104,7 @@ www.grampulse.com  →  CNAME  →  ton-site.netlify.app
 
 1. [whop.com/dashboard](https://whop.com/dashboard) → **Products** → **New product**
 2. Nom : **GramPulse Pro**
-3. Prix : **49 €/mois** (ou ton tarif)
+3. Prix : **99 €/mois** (ou ton tarif)
 4. Copie `plan_...` → `WHOP_PLAN_ID` sur Render
 5. Copie les clés API et webhook secret
 
