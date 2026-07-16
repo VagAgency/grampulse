@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { LandingBackground } from "@/components/LandingBackground";
+import { LandingHeroMockup } from "@/components/LandingHeroMockup";
 import { Reveal } from "@/components/Reveal";
 import { createCheckout } from "@/lib/auth";
 
@@ -10,19 +12,33 @@ const FEATURES = [
   {
     title: "Modèles & comptes",
     desc: "Organise tes modèles et rattache plusieurs comptes Instagram à chacun.",
+    icon: "◈",
+    wide: true,
   },
   {
     title: "Vues, abonnés & clics",
     desc: "Courbes sur 7 à 90 jours, avec tracking Linkscale intégré.",
+    icon: "↗",
+    wide: false,
   },
   {
     title: "Rang équipe & suivi VA",
     desc: "Classe tes VAs par performance et suis l'activité jour par jour.",
+    icon: "◎",
+    wide: false,
   },
   {
     title: "Top vidéos",
     desc: "Leaderboard des meilleurs Reels par période, tri performance ou conversion.",
+    icon: "▶",
+    wide: true,
   },
+];
+
+const STEPS = [
+  { n: "01", title: "Ajoute tes @", desc: "Crée un modèle, entre les handles publics — sans login Meta." },
+  { n: "02", title: "Refresh", desc: "Synchronise Instagram + Linkscale en un clic depuis le dashboard." },
+  { n: "03", title: "Scale", desc: "Vues, clics, top Reels et rang équipe — tout au même endroit." },
 ];
 
 const FAQ = [
@@ -70,18 +86,14 @@ export default function LandingPage() {
 
   return (
     <main className="landing">
-      <div className="landing-glows" aria-hidden="true">
-        <div className="landing-glow landing-glow-1" />
-        <div className="landing-glow landing-glow-2" />
-        <div className="landing-glow landing-glow-3" />
-        <div className="landing-glow landing-glow-4" />
-      </div>
+      <LandingBackground />
 
       <header className="landing-nav">
-        <div className="container landing-nav-inner">
-          <BrandLogo href="/" size={36} />
+        <div className="landing-nav-pill">
+          <BrandLogo href="/" size={32} />
           <nav className="landing-nav-links">
             <a href="#features">Fonctionnalités</a>
+            <a href="#how">Comment ça marche</a>
             <a href="#pricing">Tarifs</a>
             <a href="#faq">FAQ</a>
           </nav>
@@ -97,36 +109,81 @@ export default function LandingPage() {
       </header>
 
       <section className="landing-hero container">
-        <p className="hint animate-hero">Analytics Instagram — agences & créateurs</p>
-        <h1 className="landing-title animate-hero hero-delay-1">
-          Pilote tous tes comptes Instagram en <span className="gradient-text">un seul dashboard</span>
-        </h1>
-        <p className="landing-subtitle animate-hero hero-delay-2">
-          Vues, abonnés, clics Linkscale, top vidéos et suivi d&apos;équipe —
-          sans connexion Meta.
-        </p>
-        <div className="landing-hero-cta animate-hero hero-delay-3">
-          <a href="#pricing" className="btn btn-primary">
-            Commencer maintenant
-          </a>
-          <Link href="/login" className="btn btn-ghost">
-            J&apos;ai déjà un compte
-          </Link>
+        <div className="landing-hero-grid">
+          <div className="landing-hero-copy">
+            <span className="landing-badge animate-hero">
+              <span className="landing-badge-dot" />
+              Analytics Instagram — agences & créateurs
+            </span>
+            <h1 className="landing-title animate-hero hero-delay-1">
+              Pilote tous tes comptes Instagram en{" "}
+              <span className="gradient-text">un seul dashboard</span>
+            </h1>
+            <p className="landing-subtitle animate-hero hero-delay-2">
+              Vues, abonnés, clics Linkscale, top vidéos et suivi d&apos;équipe —
+              sans connexion Meta.
+            </p>
+            <div className="landing-hero-cta animate-hero hero-delay-3">
+              <a href="#pricing" className="btn btn-primary btn-lg">
+                Commencer maintenant
+              </a>
+              <Link href="/login" className="btn btn-ghost btn-lg">
+                J&apos;ai déjà un compte
+              </Link>
+            </div>
+            <div className="landing-hero-stats animate-hero hero-delay-4">
+              <div>
+                <strong>20</strong>
+                <span>comptes / modèle</span>
+              </div>
+              <div>
+                <strong>90j</strong>
+                <span>d&apos;historique</span>
+              </div>
+              <div>
+                <strong>Linkscale</strong>
+                <span>clics intégrés</span>
+              </div>
+            </div>
+          </div>
+          <LandingHeroMockup />
         </div>
       </section>
 
       <section id="features" className="landing-section container">
         <Reveal>
+          <p className="landing-eyebrow">Fonctionnalités</p>
           <h2 className="landing-section-title">
             Tout ce qu&apos;il faut pour <span className="gradient-text">scaler</span>
           </h2>
         </Reveal>
-        <div className="landing-features-grid">
+        <div className="landing-bento">
           {FEATURES.map((f, i) => (
-            <Reveal key={f.title} delay={i * 90}>
-              <div className="card landing-feature card-interactive">
+            <Reveal key={f.title} delay={i * 80}>
+              <article className={`card landing-bento-card${f.wide ? " landing-bento-wide" : ""} card-interactive`}>
+                <span className="landing-bento-icon">{f.icon}</span>
                 <h3>{f.title}</h3>
                 <p>{f.desc}</p>
+              </article>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <section id="how" className="landing-section container">
+        <Reveal>
+          <p className="landing-eyebrow">Comment ça marche</p>
+          <h2 className="landing-section-title">
+            En place en <span className="gradient-text">3 minutes</span>
+          </h2>
+        </Reveal>
+        <div className="landing-steps">
+          {STEPS.map((step, i) => (
+            <Reveal key={step.n} delay={i * 100}>
+              <div className="card landing-step card-interactive">
+                <span className="landing-step-n">{step.n}</span>
+                <h3>{step.title}</h3>
+                <p>{step.desc}</p>
               </div>
             </Reveal>
           ))}
@@ -135,13 +192,15 @@ export default function LandingPage() {
 
       <section id="pricing" className="landing-section container">
         <Reveal>
+          <p className="landing-eyebrow">Tarifs</p>
           <h2 className="landing-section-title">
             Un tarif <span className="gradient-text">simple</span>
           </h2>
         </Reveal>
         <Reveal delay={120}>
           <div className="card landing-pricing-card card-interactive">
-            <p className="hint">GramPulse Pro</p>
+            <div className="landing-pricing-glow" aria-hidden="true" />
+            <p className="landing-pricing-label">GramPulse Pro</p>
             <p className="landing-price">
               99 <span>€/mois</span>
             </p>
@@ -157,19 +216,18 @@ export default function LandingPage() {
               placeholder="ton@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ marginBottom: 12 }}
             />
             {error && <p className="status err">{error}</p>}
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary btn-lg"
               style={{ width: "100%" }}
               disabled={loading}
               onClick={() => void subscribe()}
             >
               {loading ? "Redirection…" : "S'abonner — 99 €/mois"}
             </button>
-            <p className="hint" style={{ marginTop: 12, textAlign: "center" }}>
+            <p className="hint landing-pricing-note">
               Paiement sécurisé via Whop · Annulation à tout moment
             </p>
           </div>
@@ -178,6 +236,7 @@ export default function LandingPage() {
 
       <section id="faq" className="landing-section container">
         <Reveal>
+          <p className="landing-eyebrow">FAQ</p>
           <h2 className="landing-section-title">Questions fréquentes</h2>
         </Reveal>
         <div className="landing-faq">
@@ -202,6 +261,15 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      <footer className="landing-footer container">
+        <BrandLogo href="/" size={28} />
+        <p className="hint">© {new Date().getFullYear()} GramPulse · Analytics Instagram</p>
+        <div className="landing-footer-links">
+          <Link href="/login">Connexion</Link>
+          <a href="#pricing">Tarifs</a>
+        </div>
+      </footer>
     </main>
   );
 }
