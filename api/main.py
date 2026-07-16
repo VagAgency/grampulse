@@ -56,17 +56,9 @@ def startup() -> None:
 
     logging.basicConfig(level=logging.INFO)
     init_db()
-    from startup_restore import maybe_restore_from_bundle
-    from backup_io import DEFAULT_BUNDLE_PATH
+    from startup_restore import schedule_restore_in_background
 
-    result = maybe_restore_from_bundle()
-    log = logging.getLogger("grampulse")
-    if result:
-        log.info("Startup restore: %s", result)
-    elif DEFAULT_BUNDLE_PATH.exists():
-        log.warning(
-            "Base vide et sauvegarde présente mais restore non exécuté — vérifier GRAMPULSE_AUTO_RESTORE"
-        )
+    schedule_restore_in_background()
 
 
 @app.get("/health")
@@ -74,6 +66,7 @@ def health():
     from instagram_provider import get_instagram_mode
     from linkscale_provider import is_linkscale_configured
     from backup_io import DEFAULT_BUNDLE_PATH
+    from startup_restore import get_restore_state
     import database as db
 
     mode = get_instagram_mode()
@@ -91,6 +84,7 @@ def health():
         "auto_restore": os.getenv("GRAMPULSE_AUTO_RESTORE", "true"),
         "backup_bundle_present": DEFAULT_BUNDLE_PATH.exists(),
         "dev_models_count": model_count,
+        "restore_status": get_restore_state(),
     }
 
 

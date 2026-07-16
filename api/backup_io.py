@@ -124,9 +124,8 @@ def export_bundle(db_path: Path, email: str) -> dict:
                 "avg_comments": row["avg_comments"],
                 "health_score": row["health_score"],
                 "health_label": row["health_label"],
-                "top_posts": json.loads(row["top_posts_json"] or "[]"),
+                "top_posts": json.loads(row["top_posts_json"] or "[]")[:8],
                 "analysis": json.loads(row["analysis_json"] or "{}"),
-                "raw": json.loads(row["raw_json"] or "{}"),
                 "fetched_at": row["fetched_at"],
             }
         )
