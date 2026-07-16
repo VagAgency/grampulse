@@ -15,6 +15,7 @@ export function LandingFooter() {
           <h4>Produit</h4>
           <ul>
             <li><a href="#features">Fonctionnalités</a></li>
+            <li><a href="#equipe-va">Équipe & VAs</a></li>
             <li><a href="#showcase">Interface</a></li>
             <li><a href="#how">Comment ça marche</a></li>
             <li><a href="#pricing">Tarifs</a></li>

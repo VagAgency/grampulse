@@ -6,6 +6,8 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { LandingBackground } from "@/components/LandingBackground";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingShowcase } from "@/components/LandingShowcase";
+import { LandingHeroMockup } from "@/components/LandingHeroMockup";
+import { LandingVaSection } from "@/components/LandingVaSection";
 import { Reveal } from "@/components/Reveal";
 import { TestimonialsMarquee } from "@/components/TestimonialsMarquee";
 import { createCheckout } from "@/lib/auth";
@@ -148,36 +150,53 @@ export default function LandingPage() {
           <BrandLogo href="/" size={32} />
           <nav className="landing-nav-links">
             <a href="#features">Fonctionnalités</a>
-            <a href="#showcase">Interface</a>
+            <a href="#equipe-va">Équipe & VAs</a>
             <a href="#how">Comment ça marche</a>
             <a href="#pricing">Tarifs</a>
             <a href="#faq">FAQ</a>
           </nav>
           <div className="landing-nav-actions">
             <Link href="/login" className="btn btn-ghost btn-sm">Connexion</Link>
-            <a href="#pricing" className="btn btn-primary btn-sm">Commencer →</a>
+            <a href="#pricing" className="btn btn-primary btn-sm">S&apos;abonner</a>
           </div>
         </div>
       </header>
 
-      {/* Hero centré — style MetaGhost */}
-      <section className="landing-hero landing-hero-centered container">
-        <span className="landing-badge animate-hero">
-          <span className="landing-badge-dot" />
-          Analytics Instagram — agences & créateurs
-        </span>
-        <h1 className="landing-title landing-title-center animate-hero hero-delay-1">
-          Pilote tous tes comptes Instagram
-          <br />
-          <span className="gradient-text">en un seul dashboard</span>
-        </h1>
-        <p className="landing-subtitle landing-subtitle-center animate-hero hero-delay-2">
-          Vues, abonnés, clics Linkscale, top vidéos et suivi d&apos;équipe —
-          sans connexion Meta. Conçu pour les agences qui gèrent plusieurs modèles.
-        </p>
-        <div className="landing-hero-cta landing-hero-cta-center animate-hero hero-delay-3">
-          <a href="#pricing" className="btn btn-primary btn-lg">Commencer</a>
-          <a href="#showcase" className="btn btn-ghost btn-lg">Voir l&apos;interface →</a>
+      <section className="landing-hero container">
+        <div className="landing-hero-grid">
+          <div className="landing-hero-copy">
+            <span className="landing-badge animate-hero">
+              <span className="landing-badge-dot" />
+              Analytics Instagram — agences & créateurs
+            </span>
+            <h1 className="landing-title animate-hero hero-delay-1">
+              Pilote tous tes comptes Instagram en{" "}
+              <span className="gradient-text">un seul dashboard</span>
+            </h1>
+            <p className="landing-subtitle animate-hero hero-delay-2">
+              Vues, abonnés, clics Linkscale, top vidéos et suivi d&apos;équipe —
+              sans connexion Meta.
+            </p>
+            <div className="landing-hero-cta animate-hero hero-delay-3">
+              <a href="#pricing" className="btn btn-primary btn-lg">Commencer maintenant</a>
+              <Link href="/login" className="btn btn-ghost btn-lg">J&apos;ai déjà un compte</Link>
+            </div>
+            <div className="landing-hero-stats animate-hero hero-delay-4">
+              <div>
+                <strong>20</strong>
+                <span>comptes / modèle</span>
+              </div>
+              <div>
+                <strong>90j</strong>
+                <span>d&apos;historique</span>
+              </div>
+              <div>
+                <strong>Linkscale</strong>
+                <span>clics intégrés</span>
+              </div>
+            </div>
+          </div>
+          <LandingHeroMockup />
         </div>
       </section>
 
@@ -208,6 +227,8 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      <LandingVaSection />
 
       {/* Comparaison avant/après */}
       <section className="landing-section container">
