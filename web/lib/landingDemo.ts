@@ -1,4 +1,4 @@
-/** Données démo landing — comptes et modèles réels GramPulse */
+/** Données démo landing — comptes fictifs (ne pas utiliser de vrais @handles clients) */
 
 export type LandingModel = {
   emoji: string;
@@ -7,10 +7,10 @@ export type LandingModel = {
 };
 
 export const LANDING_MODELS: LandingModel[] = [
-  { emoji: "🐆", name: "Aurélie", handles: ["aurelie_.clochette", "aurelie_cutie"] },
-  { emoji: "💎", name: "Anais", handles: ["anais.volt", "anaislaviolette_"] },
-  { emoji: "🔥", name: "Alice", handles: ["alice.la.rousse", "alice.ton.bebe"] },
-  { emoji: "🦋", name: "Lola", handles: ["la.belle.lolaa", "lola.hotesse"] },
+  { emoji: "🐆", name: "Camille", handles: ["camille.daily", "camille.privee"] },
+  { emoji: "💎", name: "Jade", handles: ["jade.officiel", "jade.stories"] },
+  { emoji: "🔥", name: "Mila", handles: ["mila.paris", "mila.afterdark"] },
+  { emoji: "🦋", name: "Sasha", handles: ["sasha.mode", "sasha.club"] },
 ];
 
 export const LANDING_ACCOUNT_COUNT = LANDING_MODELS.reduce((n, m) => n + m.handles.length, 0);
@@ -19,12 +19,12 @@ export const LANDING_VAS = [
   {
     name: "🇷🇺 Alexandra",
     accounts: 4,
-    handles: ["alice.la.rousse", "alice.ton.bebe", "anais.volt", "anaislaviolette_"] as const,
+    handles: ["mila.paris", "mila.afterdark", "jade.officiel", "jade.stories"] as const,
   },
   {
     name: "🐤 Callie",
     accounts: 4,
-    handles: ["aurelie_.clochette", "aurelie_cutie", "la.belle.lolaa", "lola.hotesse"] as const,
+    handles: ["camille.daily", "camille.privee", "sasha.mode", "sasha.club"] as const,
   },
 ] as const;
 

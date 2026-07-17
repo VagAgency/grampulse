@@ -94,7 +94,7 @@ function DashboardPanel() {
 }
 
 function ModelPanel() {
-  const model = LANDING_MODELS.find((m) => m.name === "Alice") ?? LANDING_MODELS[2];
+  const model = LANDING_MODELS.find((m) => m.name === "Mila") ?? LANDING_MODELS[2];
   const rows: [string, string, string, string][] = model.handles.map((handle, i) => [
     handle,
     i === 0 ? "184K" : "96K",
@@ -153,9 +153,9 @@ function LeaderboardPanel() {
     <div className="showcase-panel">
       <div className="showcase-lb">
         {[
-          { rank: 1, handle: "alice.la.rousse", views: "842K", conv: "3.2%" },
-          { rank: 2, handle: "lola.hotesse", views: "610K", conv: "2.8%" },
-          { rank: 3, handle: "anais.volt", views: "445K", conv: "2.1%" },
+          { rank: 1, handle: "mila.paris", views: "842K", conv: "3.2%" },
+          { rank: 2, handle: "sasha.mode", views: "610K", conv: "2.8%" },
+          { rank: 3, handle: "jade.officiel", views: "445K", conv: "2.1%" },
         ].map((v) => (
           <div key={v.rank} className="showcase-lb-row">
             <span className="showcase-lb-rank">#{v.rank}</span>
