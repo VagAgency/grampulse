@@ -1,5 +1,7 @@
 "use client";
 
+import { LANDING_MODELS } from "@/lib/landingDemo";
+
 const BARS = [42, 58, 48, 72, 65, 88, 76, 94, 82, 100, 90, 96];
 
 export function LandingHeroMockup() {
@@ -70,20 +72,18 @@ export function LandingHeroMockup() {
         </div>
 
         <div className="landing-mockup-models">
-          <div className="landing-mockup-model">
-            <span>🐆</span>
-            <div>
-              <strong>Aurélie</strong>
-              <p>3 comptes · 842K vues</p>
+          {LANDING_MODELS.map((model) => (
+            <div key={model.name} className="landing-mockup-model">
+              <span>{model.emoji}</span>
+              <div>
+                <strong>{model.name}</strong>
+                <p>
+                  {model.handles.length} compte{model.handles.length > 1 ? "s" : ""} · @
+                  {model.handles[0]}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="landing-mockup-model">
-            <span>🔥</span>
-            <div>
-              <strong>Alice</strong>
-              <p>2 comptes · 610K vues</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

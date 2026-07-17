@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LANDING_VAS, modelForHandle } from "@/lib/landingDemo";
 
 type VaView = "suivi" | "ranking";
 
@@ -92,73 +93,44 @@ export function LandingVaSection() {
               ))}
             </div>
 
-            <article className="landing-va-va-card">
-              <div className="landing-va-va-head">
-                <h3>🇷🇺 Alexandra</h3>
-                <div className="landing-va-pills">
-                  <span className="suivi-pill reels">4 reels</span>
-                  <span className="suivi-pill posts">2 posts</span>
-                  <span className="suivi-pill stories">1 story</span>
+            {LANDING_VAS.map((va, vaIndex) => (
+              <article key={va.name} className="landing-va-va-card">
+                <div className="landing-va-va-head">
+                  <h3>{va.name}</h3>
+                  <div className="landing-va-pills">
+                    <span className="suivi-pill reels">{vaIndex === 0 ? "4" : "3"} reels</span>
+                    <span className="suivi-pill posts">{vaIndex === 0 ? "2" : "2"} posts</span>
+                    {vaIndex === 0 ? <span className="suivi-pill stories">1 story</span> : null}
+                  </div>
                 </div>
-              </div>
-              <table className="landing-va-table">
-                <thead>
-                  <tr>
-                    <th>Compte</th>
-                    <th>Modèle</th>
-                    <th>Reels</th>
-                    <th>Posts</th>
-                    <th>Heure</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>@alice.la.rousse</td>
-                    <td>🔥 Alice</td>
-                    <td>2</td>
-                    <td>1</td>
-                    <td className="landing-va-time">09:14</td>
-                  </tr>
-                  <tr>
-                    <td>@anais.volt</td>
-                    <td>💎 Anais</td>
-                    <td>2</td>
-                    <td>1</td>
-                    <td className="landing-va-time">14:32</td>
-                  </tr>
-                </tbody>
-              </table>
-            </article>
-
-            <article className="landing-va-va-card">
-              <div className="landing-va-va-head">
-                <h3>🐤 Callie</h3>
-                <div className="landing-va-pills">
-                  <span className="suivi-pill reels">2 reels</span>
-                  <span className="suivi-pill posts">1 post</span>
-                </div>
-              </div>
-              <table className="landing-va-table">
-                <thead>
-                  <tr>
-                    <th>Compte</th>
-                    <th>Modèle</th>
-                    <th>Reels</th>
-                    <th>Posts</th>
-                    <th>Heure</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>@lola.hotesse</td>
-                    <td>🦋 Lola</td>
-                    <td>2</td>
-                    <td>1</td>
-                    <td className="landing-va-time">11:08</td>
-                  </tr>
-                </tbody>
-              </table>
-            </article>
+                <table className="landing-va-table">
+                  <thead>
+                    <tr>
+                      <th>Compte</th>
+                      <th>Modèle</th>
+                      <th>Reels</th>
+                      <th>Posts</th>
+                      <th>Heure</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {va.handles.map((handle, i) => {
+                      const model = modelForHandle(handle);
+                      const times = ["09:14", "14:32", "11:08", "16:45"];
+                      return (
+                        <tr key={handle}>
+                          <td>@{handle}</td>
+                          <td>{model ? `${model.emoji} ${model.name}` : "—"}</td>
+                          <td>{i % 2 === 0 ? 2 : 1}</td>
+                          <td>{i === 0 ? 1 : 0}</td>
+                          <td className="landing-va-time">{times[i] ?? "12:00"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </article>
+            ))}
           </div>
         ) : (
           <div className="landing-va-ranking">
@@ -176,27 +148,19 @@ export function LandingVaSection() {
               <tbody>
                 <tr className="landing-va-rank-top">
                   <td><span className="landing-va-rank-badge">1</span></td>
-                  <td>🇷🇺 Alexandra</td>
-                  <td>4</td>
+                  <td>{LANDING_VAS[0].name}</td>
+                  <td>{LANDING_VAS[0].accounts}</td>
                   <td className="up">842K</td>
                   <td>38</td>
                   <td><span className="landing-va-score">94</span></td>
                 </tr>
                 <tr>
                   <td><span className="landing-va-rank-badge">2</span></td>
-                  <td>🐤 Callie</td>
-                  <td>3</td>
+                  <td>{LANDING_VAS[1].name}</td>
+                  <td>{LANDING_VAS[1].accounts}</td>
                   <td className="up">610K</td>
                   <td>27</td>
                   <td><span className="landing-va-score">87</span></td>
-                </tr>
-                <tr>
-                  <td><span className="landing-va-rank-badge dim">3</span></td>
-                  <td>✨ Nouveau VA</td>
-                  <td>1</td>
-                  <td>124K</td>
-                  <td>8</td>
-                  <td><span className="landing-va-score dim">72</span></td>
                 </tr>
               </tbody>
             </table>

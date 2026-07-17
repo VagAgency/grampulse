@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LANDING_ACCOUNT_COUNT, LANDING_MODELS, LANDING_VAS } from "@/lib/landingDemo";
 
 type TabId = "dashboard" | "model" | "team" | "leaderboard";
 
@@ -56,8 +57,8 @@ function DashboardPanel() {
   return (
     <div className="showcase-panel">
       <div className="showcase-kpis">
-        <div><span>Modèles</span><strong>4</strong></div>
-        <div><span>Comptes</span><strong>8</strong></div>
+        <div><span>Modèles</span><strong>{LANDING_MODELS.length}</strong></div>
+        <div><span>Comptes</span><strong>{LANDING_ACCOUNT_COUNT}</strong></div>
         <div><span>Vues 30j</span><strong className="gradient-text">2.4M</strong></div>
         <div><span>Clics</span><strong className="gradient-text">12.8K</strong></div>
       </div>
@@ -78,9 +79,14 @@ function DashboardPanel() {
           <path d="M0,75 L40,62 L80,68 L120,48 L160,55 L200,35 L240,42 L280,28 L320,32 L360,18 L400,22" fill="none" stroke="url(#sc-line)" strokeWidth="2.5" />
         </svg>
         <div className="showcase-legend">
-          <span><i style={{ background: "#8b5cf6" }} /> Aurélie</span>
-          <span><i style={{ background: "#ec4899" }} /> Alice</span>
-          <span><i style={{ background: "#f97316" }} /> Lola</span>
+          {LANDING_MODELS.map((model, i) => {
+            const colors = ["#8b5cf6", "#ec4899", "#f97316", "#22d3ee"];
+            return (
+              <span key={model.name}>
+                <i style={{ background: colors[i % colors.length] }} /> {model.name}
+              </span>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -88,23 +94,28 @@ function DashboardPanel() {
 }
 
 function ModelPanel() {
+  const model = LANDING_MODELS.find((m) => m.name === "Alice") ?? LANDING_MODELS[2];
+  const rows: [string, string, string, string][] = model.handles.map((handle, i) => [
+    handle,
+    i === 0 ? "184K" : "96K",
+    i === 0 ? "+12%" : "+4%",
+    i === 0 ? "actif" : "meilleur",
+  ]);
+
   return (
     <div className="showcase-panel">
       <div className="showcase-model-head">
-        <span className="showcase-emoji">🔥</span>
+        <span className="showcase-emoji">{model.emoji}</span>
         <div>
-          <strong>Alice</strong>
-          <p>2 comptes · Actif</p>
+          <strong>{model.name}</strong>
+          <p>{model.handles.length} comptes · Actif</p>
         </div>
       </div>
       <div className="showcase-table">
         <div className="showcase-table-row head">
           <span>Compte</span><span>Vues 7j</span><span>Δ</span><span>Statut</span>
         </div>
-        {[
-          ["alice.la.rousse", "184K", "+12%", "actif"],
-          ["alice.ton.bebe", "96K", "+4%", "attention"],
-        ].map(([handle, views, delta, status]) => (
+        {rows.map(([handle, views, delta, status]) => (
           <div key={handle} className="showcase-table-row">
             <span>@{handle}</span>
             <span>{views}</span>
@@ -121,17 +132,14 @@ function TeamPanel() {
   return (
     <div className="showcase-panel">
       <div className="showcase-team-list">
-        {[
-          { name: "Alexandra 🇷🇺", score: "94", accounts: 4, trend: "+18%" },
-          { name: "Callie 🐤", score: "87", accounts: 3, trend: "+9%" },
-        ].map((va) => (
+        {LANDING_VAS.map((va) => (
           <div key={va.name} className="showcase-team-row">
-            <span className="showcase-team-rank">{va.score}</span>
+            <span className="showcase-team-rank">{va.name === LANDING_VAS[0].name ? "94" : "87"}</span>
             <div>
               <strong>{va.name}</strong>
-              <p>{va.accounts} comptes assignés</p>
+              <p>{va.accounts} comptes · @{va.handles[0]}…</p>
             </div>
-            <span className="up">{va.trend}</span>
+            <span className="up">{va.name === LANDING_VAS[0].name ? "+18%" : "+9%"}</span>
           </div>
         ))}
       </div>
@@ -145,15 +153,15 @@ function LeaderboardPanel() {
     <div className="showcase-panel">
       <div className="showcase-lb">
         {[
-          { rank: 1, caption: "Reel du lundi 🔥", views: "842K", conv: "3.2%" },
-          { rank: 2, caption: "Story promo", views: "610K", conv: "2.8%" },
-          { rank: 3, caption: "Nouveau post", views: "445K", conv: "2.1%" },
+          { rank: 1, handle: "alice.la.rousse", views: "842K", conv: "3.2%" },
+          { rank: 2, handle: "lola.hotesse", views: "610K", conv: "2.8%" },
+          { rank: 3, handle: "anais.volt", views: "445K", conv: "2.1%" },
         ].map((v) => (
           <div key={v.rank} className="showcase-lb-row">
             <span className="showcase-lb-rank">#{v.rank}</span>
             <div className="showcase-lb-thumb" />
             <div className="showcase-lb-meta">
-              <strong>{v.caption}</strong>
+              <strong>@{v.handle}</strong>
               <p>{v.views} vues · {v.conv} conv.</p>
             </div>
           </div>
