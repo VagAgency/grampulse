@@ -3,6 +3,7 @@ export const API =
   (process.env.NODE_ENV === "production" ? "https://api.grampulse.app" : "http://localhost:8000");
 
 export const SESSION_KEY = "grampulse_email";
+export const DEFAULT_CHART_DAYS = 7;
 
 export function getStoredEmail(): string | null {
   if (typeof window === "undefined") return null;
@@ -319,13 +320,32 @@ export async function refreshAccount(email: string, modelId: number, handle: str
   return data;
 }
 
+export type DailyRefreshStatus = {
+  used_this_period: boolean;
+  available_now: boolean;
+  period_start: string;
+  next_available_at: string;
+  reset_hour: number;
+  timezone: string;
+  message?: string | null;
+};
+
 export type RefreshTarget = {
   handle: string;
   model_id: number;
   model_name: string | null;
 };
 
-export async function fetchRefreshTargets(email: string): Promise<{ accounts: RefreshTarget[] }> {
+export async function fetchRefreshStatus(email: string): Promise<DailyRefreshStatus> {
+  const res = await fetchApi(`${API}/refresh/status`, { headers: authHeaders(email) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Statut refresh indisponible.");
+  return data;
+}
+
+export async function fetchRefreshTargets(
+  email: string
+): Promise<{ accounts: RefreshTarget[]; refresh?: DailyRefreshStatus }> {
   const res = await fetchApi(`${API}/refresh/targets`, { headers: authHeaders(email) });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || "Liste des comptes indisponible.");
@@ -335,8 +355,11 @@ export async function fetchRefreshTargets(email: string): Promise<{ accounts: Re
 export type RefreshAllResult = {
   total: number;
   synced: number;
+  skipped_count?: number;
+  skipped?: Array<{ handle: string; model_id: number; message?: string }>;
   results: Array<{ handle: string; model_id: number; ok: boolean }>;
   errors: Array<{ handle: string; model_id?: number; error: string }>;
+  refresh?: DailyRefreshStatus;
   linkscale?: { synced?: number; error?: string };
 };
 

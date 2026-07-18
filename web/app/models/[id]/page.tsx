@@ -35,6 +35,7 @@ import {
   sumDailyViews,
   sumDailyClicks,
   sumLatestFollowers,
+  DEFAULT_CHART_DAYS,
   VideoSortMode,
 } from "@/lib/api";
 
@@ -54,7 +55,7 @@ export default function ModelPage() {
   const [deletingHandle, setDeletingHandle] = useState<string | null>(null);
   const [refreshingHandle, setRefreshingHandle] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [chartDays, setChartDays] = useState(30);
+  const [chartDays, setChartDays] = useState(DEFAULT_CHART_DAYS);
   const [chartMode, setChartMode] = useState<ChartMode>("views");
   const [videoMode, setVideoMode] = useState<VideoSortMode>("performance");
   const [vas, setVas] = useState<VaMember[]>([]);
@@ -152,9 +153,13 @@ export default function ModelPage() {
     if (!email) return;
     setRefreshingHandle(handleToRefresh);
     setError("");
+    setNotice("");
     try {
-      await refreshAccount(email, modelId, handleToRefresh);
+      const result = await refreshAccount(email, modelId, handleToRefresh);
       await load(email);
+      if (result.skipped && result.message) {
+        setNotice(result.message);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
     } finally {
@@ -176,25 +181,31 @@ export default function ModelPage() {
     }
   }
 
-  async function onAdd(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email || !handle.trim()) return;
+  async function onAdd(e?: React.FormEvent) {
+    e?.preventDefault();
+    const trimmed = handle.trim().replace(/^@+/, "");
+    if (!trimmed) {
+      setError("Entre un @username Instagram.");
+      return;
+    }
+    if (!email) {
+      setError("Session expirée — reconnecte-toi.");
+      router.replace("/login");
+      return;
+    }
     setAdding(true);
     setError("");
-    setNotice("");
+    setNotice("Ajout de @" + trimmed + " en cours…");
     try {
-      const result = await addAccountToModel(email, modelId, handle.trim());
+      const result = await addAccountToModel(email, modelId, trimmed);
       setHandle("");
+      setNotice(result.message || "Compte ajouté — synchronisation en cours…");
       await load(email);
-      if (result.syncing) {
-        setNotice(result.message || "Synchronisation Instagram en cours (30–60 s)…");
-        window.setTimeout(() => {
-          if (email) void load(email);
-        }, 12000);
-      } else {
-        setNotice("");
-      }
+      window.setTimeout(() => {
+        void load(email);
+      }, 12000);
     } catch (err) {
+      setNotice("");
       setError(err instanceof Error ? err.message : "Erreur");
     } finally {
       setAdding(false);
@@ -386,8 +397,13 @@ export default function ModelPage() {
                 placeholder="@username Instagram"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value)}
+                disabled={adding}
               />
-              <button type="submit" className="btn btn-primary" disabled={adding}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={adding || !handle.trim()}
+              >
                 {adding ? "Ajout…" : "Ajouter un compte"}
               </button>
             </form>
@@ -457,7 +473,7 @@ export default function ModelPage() {
                               disabled={refreshingHandle === acc.handle}
                               onClick={() => onRefresh(acc.handle)}
                             >
-                              {refreshingHandle === acc.handle ? "…" : "Refresh"}
+                              {refreshingHandle === acc.handle ? "…" : "Refresh (1×/j · 8h)"}
                             </button>
                             <button
                               type="button"

@@ -4,12 +4,15 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import {
+  DailyRefreshStatus,
+  fetchRefreshStatus,
   fetchRefreshTargets,
   getStoredEmail,
   refreshAllAccounts,
@@ -27,6 +30,7 @@ type BulkRefreshContextValue = {
   total: number;
   currentHandle: string | null;
   error: string | null;
+  refreshStatus: DailyRefreshStatus | null;
   refreshAccounts: () => Promise<void>;
   refreshLinks: () => Promise<void>;
 };
@@ -58,7 +62,30 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
   const [total, setTotal] = useState(0);
   const [currentHandle, setCurrentHandle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshStatus, setRefreshStatus] = useState<DailyRefreshStatus | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadRefreshStatus = useCallback(async () => {
+    const email = getStoredEmail();
+    if (!email) return;
+    try {
+      setRefreshStatus(await fetchRefreshStatus(email));
+    } catch {
+      setRefreshStatus(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadRefreshStatus();
+  }, [loadRefreshStatus]);
+
+  useEffect(() => {
+    const onRefreshed = () => {
+      void loadRefreshStatus();
+    };
+    window.addEventListener(GRAMPULSE_REFRESHED_EVENT, onRefreshed);
+    return () => window.removeEventListener(GRAMPULSE_REFRESHED_EVENT, onRefreshed);
+  }, [loadRefreshStatus]);
 
   const clearProgressTimer = useCallback(() => {
     if (progressTimer.current) {
@@ -70,6 +97,10 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
   const refreshAccounts = useCallback(async () => {
     const email = getStoredEmail();
     if (!email || running) return;
+    if (refreshStatus && !refreshStatus.available_now) {
+      setError(refreshStatus.message || "Refresh du jour déjà utilisé — repasse demain à 8h.");
+      return;
+    }
 
     setRunning(true);
     setKind("accounts");
@@ -101,6 +132,18 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
 
       if (result.errors?.length) {
         setError(formatRefreshErrors(result.errors));
+      } else if (result.skipped_count && result.synced === 0) {
+        setError(
+          result.refresh?.message ||
+            result.skipped?.[0]?.message ||
+            "Refresh du jour déjà utilisé — prochain refresh demain à 8h."
+        );
+      }
+
+      if (result.refresh) {
+        setRefreshStatus(result.refresh);
+      } else {
+        await loadRefreshStatus();
       }
 
       window.dispatchEvent(new CustomEvent(GRAMPULSE_REFRESHED_EVENT));
@@ -112,9 +155,7 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
       setKind(null);
       setCurrentHandle(null);
     }
-  }, [running, clearProgressTimer]);
-
-  const refreshLinks = useCallback(async () => {
+  }, [running, clearProgressTimer, refreshStatus, loadRefreshStatus]);
     const email = getStoredEmail();
     if (!email || running) return;
 
@@ -155,10 +196,11 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
       total,
       currentHandle,
       error,
+      refreshStatus,
       refreshAccounts,
       refreshLinks,
     }),
-    [running, kind, current, total, currentHandle, error, refreshAccounts, refreshLinks]
+    [running, kind, current, total, currentHandle, error, refreshStatus, refreshAccounts, refreshLinks]
   );
 
   return (
@@ -175,7 +217,8 @@ export function useBulkRefresh() {
 }
 
 export function HeaderRefreshActions() {
-  const { running, kind, refreshAccounts, refreshLinks } = useBulkRefresh();
+  const { running, kind, refreshStatus, refreshAccounts, refreshLinks } = useBulkRefresh();
+  const refreshUsed = refreshStatus ? !refreshStatus.available_now : false;
 
   return (
     <div className="header-refresh-actions">
@@ -183,10 +226,18 @@ export function HeaderRefreshActions() {
         type="button"
         className={`refresh-header-btn${running && kind === "accounts" ? " is-loading" : ""}`}
         onClick={() => void refreshAccounts()}
-        disabled={running}
-        title="Actualiser les stats Instagram de tous les comptes"
+        disabled={running || refreshUsed}
+        title={
+          refreshUsed
+            ? refreshStatus?.message || "Refresh du jour déjà utilisé — prochain refresh demain à 8h"
+            : "Refresh quotidien Instagram — 1× par jour, reset à 8h (Europe/Paris)"
+        }
       >
-        {running && kind === "accounts" ? "Actualisation…" : "↻ Comptes"}
+        {running && kind === "accounts"
+          ? "Actualisation…"
+          : refreshUsed
+            ? "↻ Comptes (8h demain)"
+            : "↻ Comptes (1×/jour)"}
       </button>
       <button
         type="button"

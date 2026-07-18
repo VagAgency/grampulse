@@ -19,6 +19,14 @@ services:
         value: /var/data/grampulse.db
       - key: GRAMPULSE_AUTO_RESTORE
         value: "true"
+      - key: HIKER_COUNTRY_REELS
+        value: "0"
+      - key: HIKER_POSTS_LIMIT
+        value: "15"
+      - key: REFRESH_RESET_HOUR
+        value: "8"
+      - key: REFRESH_TIMEZONE
+        value: Europe/Paris
       - key: INSTAGRAM_PROVIDER
         value: auto
       - key: MAX_ACCOUNTS_PER_MODEL

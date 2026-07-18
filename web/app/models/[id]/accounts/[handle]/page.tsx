@@ -26,6 +26,7 @@ import {
   listPeriodDates,
   refreshAccount,
   VideoSortMode,
+  DEFAULT_CHART_DAYS,
 } from "@/lib/api";
 
 type ChartMode = "views" | "followers";
@@ -40,8 +41,9 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [chartMode, setChartMode] = useState<ChartMode>("views");
-  const [chartDays, setChartDays] = useState<number>(30);
+  const [chartDays, setChartDays] = useState<number>(DEFAULT_CHART_DAYS);
   const [videoMode, setVideoMode] = useState<VideoSortMode>("performance");
 
   const loadDetail = useCallback(async () => {
@@ -126,9 +128,13 @@ export default function AccountPage() {
     if (!email) return;
     setRefreshing(true);
     setError("");
+    setNotice("");
     try {
-      await refreshAccount(email, modelId, handle);
+      const result = await refreshAccount(email, modelId, handle);
       await loadDetail();
+      if (result.skipped && result.message) {
+        setNotice(result.message);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
     } finally {
@@ -141,7 +147,7 @@ export default function AccountPage() {
         <AppSubHeader backHref={`/models/${modelId}`} backLabel="Retour au modèle">
           {data ? (
             <button type="button" className="btn btn-primary btn-sm" disabled={refreshing} onClick={onRefresh}>
-              {refreshing ? "Actualisation…" : "Actualiser"}
+              {refreshing ? "Actualisation…" : "Actualiser (1×/j · 8h)"}
             </button>
           ) : null}
         </AppSubHeader>
@@ -152,6 +158,7 @@ export default function AccountPage() {
           <p className="status err">{error}</p>
         ) : data ? (
           <>
+            {notice ? <p className="status ok app-inline-notice">{notice}</p> : null}
             <PeriodBar days={chartDays} onChangeDays={setChartDays} note={shorterPeriod ? `Tous les reels ont été publiés dans les ${shorterPeriod} derniers jours — stats identiques à ${shorterPeriod}j.` : null}>
               <div className="chart-mode-toggle">
                 <button

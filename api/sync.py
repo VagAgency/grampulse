@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import database as db
+from daily_refresh import get_daily_refresh_status
 from health import compute_health_score
 from instagram_provider import (
     ApifyNotConfiguredError,
@@ -17,9 +18,72 @@ from instagram_provider import (
 from mock_provider import derive_status, seed_daily_views
 
 
-def sync_account(email: str, model_id: int, handle: str, *, force_refresh: bool = False) -> dict:
+def _cached_sync_result(account: dict, snapshot: dict, *, message: str, next_available_at: str | None = None) -> dict:
+    analysis = snapshot.get("analysis_json") or {}
+    if isinstance(analysis, str):
+        analysis = {}
+    daily = db.get_account_daily_views(account["id"], days=1)
+    views_today = int(daily[-1]["views"]) if daily else 0
+    return {
+        "account": account,
+        "status": snapshot.get("status") or account.get("status"),
+        "views_today": views_today,
+        "health_score": snapshot.get("health_score"),
+        "source": analysis.get("source") or get_instagram_mode(),
+        "cached": True,
+        "skipped": True,
+        "last_synced_at": snapshot.get("fetched_at"),
+        "message": message,
+        "next_available_at": next_available_at,
+    }
+
+
+def _maybe_skip_daily_refresh(
+    email: str,
+    model_id: int,
+    handle: str,
+    *,
+    force_refresh: bool,
+    daily_batch: bool,
+) -> dict | None:
+    if not force_refresh or daily_batch or get_instagram_mode() == "mock":
+        return None
+
+    account = db.get_tracked_account(email, handle, model_id=model_id)
+    if not account:
+        return None
+    snapshot = db.get_latest_snapshot(account["id"])
+    if not snapshot:
+        return None
+
+    status = get_daily_refresh_status(email)
+    if not status.used_this_period:
+        return None
+
+    return _cached_sync_result(
+        account,
+        snapshot,
+        message=status.message_when_blocked(),
+        next_available_at=status.next_available_at.isoformat(),
+    )
+
+
+def sync_account(
+    email: str,
+    model_id: int,
+    handle: str,
+    *,
+    force_refresh: bool = False,
+    daily_batch: bool = False,
+) -> dict:
     handle = handle.lstrip("@").lower()
     is_mock = get_instagram_mode() == "mock"
+
+    cached = _maybe_skip_daily_refresh(
+        email, model_id, handle, force_refresh=force_refresh, daily_batch=daily_batch
+    )
+    if cached:
+        return cached
 
     try:
         raw = fetch_instagram_insights(handle, force_refresh=force_refresh)
@@ -52,7 +116,6 @@ def sync_account(email: str, model_id: int, handle: str, *, force_refresh: bool 
                 followers=normalized.get("followers") if point["date"] == date.today().isoformat() else None,
             )
     else:
-        # Données réelles : reconstruire l'historique depuis les posts (30j max)
         db.clear_account_daily_views(account["id"])
         for point in extract_daily_views_from_posts(normalized, max_days=30):
             db.upsert_daily_view(
@@ -61,7 +124,6 @@ def sync_account(email: str, model_id: int, handle: str, *, force_refresh: bool 
                 views=point["views"],
             )
 
-    # Point du jour (0 si aucun post publié aujourd'hui en mode réel)
     db.upsert_daily_view(
         tracked_account_id=account["id"],
         day=date.today().isoformat(),
@@ -69,7 +131,6 @@ def sync_account(email: str, model_id: int, handle: str, *, force_refresh: bool 
         followers=normalized.get("followers"),
     )
 
-    # Mock uniquement : générer 30j de courbes si pas assez d'historique
     if is_mock and len(db.get_account_daily_views(account["id"], days=30)) < 7:
         seed_daily_views(account["id"], handle, days=30)
 
@@ -120,4 +181,6 @@ def sync_account(email: str, model_id: int, handle: str, *, force_refresh: bool 
         "views_today": views_today,
         "health_score": score,
         "source": get_instagram_mode(),
+        "cached": False,
+        "skipped": False,
     }

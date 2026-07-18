@@ -54,7 +54,12 @@ app.include_router(restore_router)
 def startup() -> None:
     import logging
 
+    from persist_backup import maybe_migrate_tmp_db_to_persistent
+
     logging.basicConfig(level=logging.INFO)
+    import database as db
+
+    maybe_migrate_tmp_db_to_persistent(db.DB_PATH)
     init_db()
     from startup_restore import schedule_restore_in_background
 
@@ -67,6 +72,8 @@ def health():
     from linkscale_provider import is_linkscale_configured
     from backup_io import DEFAULT_BUNDLE_PATH
     from startup_restore import get_restore_state
+    from persist_backup import persist_status
+    from daily_refresh import REFRESH_RESET_HOUR, REFRESH_TIMEZONE
     import database as db
 
     mode = get_instagram_mode()
@@ -85,6 +92,11 @@ def health():
         "backup_bundle_present": DEFAULT_BUNDLE_PATH.exists(),
         "dev_models_count": model_count,
         "restore_status": get_restore_state(),
+        "persist": persist_status(),
+        "daily_refresh_reset_hour": REFRESH_RESET_HOUR,
+        "daily_refresh_timezone": REFRESH_TIMEZONE,
+        "hiker_country_reels": int(os.getenv("HIKER_COUNTRY_REELS", "0")),
+        "hiker_posts_limit": int(os.getenv("HIKER_POSTS_LIMIT", "25")),
     }
 
 
