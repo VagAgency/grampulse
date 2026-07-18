@@ -11,7 +11,7 @@ HIKER_API_KEY = os.getenv("HIKERAPI_ACCESS_KEY", "").strip() or os.getenv("HIKER
 HIKER_BASE_URL = os.getenv("HIKER_API_BASE_URL", "https://api.hikerapi.com").rstrip("/")
 HIKER_POSTS_LIMIT = int(os.getenv("HIKER_POSTS_LIMIT", "25"))
 HIKER_TIMEOUT = float(os.getenv("HIKER_TIMEOUT", "60"))
-HIKER_COUNTRY_REELS = int(os.getenv("HIKER_COUNTRY_REELS", "5"))
+HIKER_COUNTRY_REELS = int(os.getenv("HIKER_COUNTRY_REELS", "0"))
 
 # Drapeaux emoji → pays (audience estimée via commentaires)
 _FLAG_COUNTRIES: dict[str, str] = {
