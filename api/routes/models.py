@@ -55,6 +55,9 @@ def _assert_model(email: str, model_id: int) -> dict:
 def _sync_account_background(email: str, model_id: int, handle: str) -> None:
     try:
         sync_account(email, model_id, handle, force_refresh=True)
+        from persist_backup import schedule_user_backup
+
+        schedule_user_backup(email)
     except Exception as exc:
         logger.exception("Sync Instagram échoué pour @%s: %s", handle, exc)
 
@@ -218,7 +221,10 @@ async def refresh_account(
     model_id: int,
     handle: str,
     x_user_email: Optional[str] = Header(default=None),
+    x_refresh_override: Optional[str] = Header(default=None, alias="X-Refresh-Override"),
 ):
+    from daily_refresh import is_valid_override_code
+
     email = _user_email(x_user_email)
     account = db.get_tracked_account(email, handle, model_id=model_id)
     if not account:
@@ -229,6 +235,7 @@ async def refresh_account(
         model_id,
         handle,
         force_refresh=True,
+        override_daily_limit=is_valid_override_code(x_refresh_override),
     )
 
 

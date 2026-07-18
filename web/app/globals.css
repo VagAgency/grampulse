@@ -2380,6 +2380,63 @@ input:focus {
   line-height: 1.45;
 }
 
+.refresh-daily-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.refresh-daily-banner-main {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.refresh-daily-banner-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #fcd34d;
+  line-height: 1.45;
+}
+
+.refresh-daily-banner-error {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  color: #f87171;
+  line-height: 1.4;
+}
+
+.refresh-daily-banner-ok {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  color: #86efac;
+  line-height: 1.4;
+}
+
+.refresh-daily-banner-override {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+}
+
+.refresh-daily-banner-override input {
+  width: 130px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
 .app-nav {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

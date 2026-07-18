@@ -310,10 +310,12 @@ export async function addAccountToModel(email: string, modelId: number, handle: 
   return data;
 }
 
-export async function refreshAccount(email: string, modelId: number, handle: string) {
+export async function refreshAccount(email: string, modelId: number, handle: string, overrideCode?: string) {
+  const headers: Record<string, string> = { ...authHeaders(email) as Record<string, string> };
+  if (overrideCode) headers["X-Refresh-Override"] = overrideCode;
   const res = await fetchApi(
     `${API}/models/${modelId}/accounts/${encodeURIComponent(handle)}/refresh`,
-    { method: "POST", headers: authHeaders(email) }
+    { method: "POST", headers }
   );
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || "Actualisation impossible.");
@@ -328,6 +330,7 @@ export type DailyRefreshStatus = {
   reset_hour: number;
   timezone: string;
   message?: string | null;
+  override_available?: boolean;
 };
 
 export type RefreshTarget = {
@@ -363,10 +366,16 @@ export type RefreshAllResult = {
   linkscale?: { synced?: number; error?: string };
 };
 
-export async function refreshAllAccounts(email: string): Promise<RefreshAllResult> {
+export async function refreshAllAccounts(email: string, overrideCode?: string): Promise<RefreshAllResult> {
+  const headers: Record<string, string> = {
+    ...(authHeaders(email) as Record<string, string>),
+    "Content-Type": "application/json",
+  };
+  if (overrideCode) headers["X-Refresh-Override"] = overrideCode;
   const res = await fetchApi(`${API}/refresh/all`, {
     method: "POST",
-    headers: authHeaders(email),
+    headers,
+    body: JSON.stringify(overrideCode ? { override_code: overrideCode } : {}),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || "Actualisation globale impossible.");

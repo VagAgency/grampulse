@@ -12,6 +12,13 @@ REFRESH_TIMEZONE = os.getenv(
     "REFRESH_TIMEZONE",
     os.getenv("LINKSCALE_TIMEZONE", "Europe/Paris"),
 )
+REFRESH_OVERRIDE_CODE = os.getenv("REFRESH_OVERRIDE_CODE", "1234").strip()
+
+
+def is_valid_override_code(code: str | None) -> bool:
+    if not REFRESH_OVERRIDE_CODE:
+        return False
+    return (code or "").strip() == REFRESH_OVERRIDE_CODE
 
 
 def _tz() -> ZoneInfo:

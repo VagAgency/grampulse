@@ -27,6 +27,8 @@ services:
         value: "8"
       - key: REFRESH_TIMEZONE
         value: Europe/Paris
+      - key: REFRESH_OVERRIDE_CODE
+        value: "1234"
       - key: INSTAGRAM_PROVIDER
         value: auto
       - key: MAX_ACCOUNTS_PER_MODEL

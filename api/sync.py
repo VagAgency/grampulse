@@ -45,8 +45,9 @@ def _maybe_skip_daily_refresh(
     *,
     force_refresh: bool,
     daily_batch: bool,
+    override_daily_limit: bool = False,
 ) -> dict | None:
-    if not force_refresh or daily_batch or get_instagram_mode() == "mock":
+    if not force_refresh or daily_batch or override_daily_limit or get_instagram_mode() == "mock":
         return None
 
     account = db.get_tracked_account(email, handle, model_id=model_id)
@@ -75,12 +76,18 @@ def sync_account(
     *,
     force_refresh: bool = False,
     daily_batch: bool = False,
+    override_daily_limit: bool = False,
 ) -> dict:
     handle = handle.lstrip("@").lower()
     is_mock = get_instagram_mode() == "mock"
 
     cached = _maybe_skip_daily_refresh(
-        email, model_id, handle, force_refresh=force_refresh, daily_batch=daily_batch
+        email,
+        model_id,
+        handle,
+        force_refresh=force_refresh,
+        daily_batch=daily_batch,
+        override_daily_limit=override_daily_limit,
     )
     if cached:
         return cached

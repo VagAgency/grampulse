@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/BrandLogo";
-import { BulkRefreshProgress } from "@/components/BulkRefreshProvider";
+import { BulkRefreshProgress, RefreshDailyBanner } from "@/components/BulkRefreshProvider";
 import { HeaderActions } from "@/components/HeaderActions";
 import { clearSession } from "@/lib/api";
 
@@ -62,6 +62,7 @@ export function AppHeader({ email, active }: Props) {
           ))}
         </nav>
       </div>
+      <RefreshDailyBanner />
       <BulkRefreshProgress />
     </header>
   );
