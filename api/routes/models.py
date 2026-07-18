@@ -208,6 +208,9 @@ def add_account(
         )
 
     account = db.add_tracked_account(user_email=email, model_id=model_id, handle=handle)
+    from persist_backup import snapshot_user_now
+
+    snapshot_user_now(email)
     background_tasks.add_task(_sync_account_background, email, model_id, handle)
     return {
         "account": account,

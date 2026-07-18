@@ -87,4 +87,7 @@ def import_user_data(
 ):
     _check_restore_secret(x_restore_secret)
     result = db.import_user_bundle(body.model_dump())
+    from persist_backup import snapshot_user_now
+
+    snapshot_user_now(body.user_email)
     return {"ok": True, **result}

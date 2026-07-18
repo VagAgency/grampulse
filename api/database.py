@@ -9,10 +9,38 @@ from pathlib import Path
 from typing import Optional
 
 def _resolve_db_path() -> Path:
+    persist_dir = Path("/var/data")
+    persist_db = persist_dir / "grampulse.db"
+
+    if is_persistent_volume_mounted(persist_dir):
+        return persist_db
+
     raw = os.getenv("GRAMPULSE_DB", "").strip()
     if raw:
         return Path(raw).expanduser()
     return Path(__file__).parent / "grampulse.db"
+
+
+def is_persistent_volume_mounted(path: Path) -> bool:
+    try:
+        with open("/proc/mounts", encoding="utf-8") as mounts:
+            target = str(path.resolve())
+            for line in mounts:
+                parts = line.split()
+                if len(parts) >= 2 and parts[1] == target:
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def _notify_persist(email: str) -> None:
+    try:
+        from persist_backup import schedule_user_backup
+
+        schedule_user_backup(email)
+    except Exception:
+        pass
 
 
 DB_PATH = _resolve_db_path()
@@ -221,7 +249,9 @@ def create_model(*, user_email: str, name: str) -> dict:
             "SELECT * FROM models WHERE user_email = ? AND name = ?",
             (user_email, name),
         ).fetchone()
-        return dict(row)
+        result = dict(row)
+    _notify_persist(user_email)
+    return result
 
 
 def update_model(*, user_email: str, model_id: int, name: str) -> Optional[dict]:
@@ -269,6 +299,15 @@ def list_models(user_email: str) -> list[dict]:
         return [dict(r) for r in rows]
 
 
+def count_user_accounts(user_email: str) -> int:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS count FROM tracked_accounts WHERE user_email = ?",
+            (user_email.strip().lower(),),
+        ).fetchone()
+        return int(row["count"]) if row else 0
+
+
 def get_model(user_email: str, model_id: int) -> Optional[dict]:
     with get_db() as conn:
         row = conn.execute(
@@ -297,7 +336,8 @@ def delete_model(user_email: str, model_id: int) -> bool:
             conn.execute("DELETE FROM account_snapshots WHERE tracked_account_id = ?", (aid,))
         conn.execute("DELETE FROM tracked_accounts WHERE model_id = ?", (model_id,))
         conn.execute("DELETE FROM models WHERE id = ?", (model_id,))
-        return True
+    _notify_persist(user_email)
+    return True
 
 
 def list_accounts_for_model(user_email: str, model_id: int) -> list[dict]:
@@ -416,7 +456,9 @@ def add_tracked_account(
             "SELECT * FROM tracked_accounts WHERE user_email = ? AND handle = ?",
             (user_email, handle),
         ).fetchone()
-        return dict(row)
+        result = dict(row)
+    _notify_persist(user_email)
+    return result
 
 
 def remove_tracked_account(user_email: str, handle: str, model_id: Optional[int] = None) -> bool:
@@ -439,7 +481,8 @@ def remove_tracked_account(user_email: str, handle: str, model_id: Optional[int]
         conn.execute("DELETE FROM daily_clicks WHERE tracked_account_id = ?", (account_id,))
         conn.execute("DELETE FROM account_snapshots WHERE tracked_account_id = ?", (account_id,))
         conn.execute("DELETE FROM tracked_accounts WHERE id = ?", (account_id,))
-        return True
+    _notify_persist(user_email)
+    return True
 
 
 def update_account_status(tracked_account_id: int, status: str) -> None:
@@ -620,7 +663,9 @@ def update_account_linkscale(
             "SELECT * FROM tracked_accounts WHERE id = ?",
             (account_id,),
         ).fetchone()
-        return dict(row) if row else None
+        result = dict(row) if row else None
+    _notify_persist(user_email)
+    return result
 
 
 def get_account_daily_views(tracked_account_id: int, days: int = 30) -> list[dict]:
@@ -800,7 +845,8 @@ def create_va(*, user_email: str, name: str, emoji: Optional[str] = None) -> dic
         ).fetchone()
         data = dict(row)
         data["accounts_count"] = 0
-        return data
+    _notify_persist(user_email)
+    return data
 
 
 def get_va(user_email: str, va_id: int) -> Optional[dict]:
@@ -825,7 +871,8 @@ def delete_va(user_email: str, va_id: int) -> bool:
             (va_id,),
         )
         conn.execute("DELETE FROM vas WHERE id = ?", (va_id,))
-        return True
+    _notify_persist(user_email)
+    return True
 
 
 def assign_account_va(
@@ -853,7 +900,9 @@ def assign_account_va(
             (va_id, _now(), account_id),
         )
     rows = list_all_accounts_enriched(user_email)
-    return next((r for r in rows if r["id"] == account_id), None)
+    result = next((r for r in rows if r["id"] == account_id), None)
+    _notify_persist(user_email)
+    return result
 
 
 def list_all_accounts_enriched(user_email: str) -> list[dict]:
@@ -1065,7 +1114,7 @@ def import_user_bundle(payload: dict) -> dict:
             raw=snap.get("raw") or {},
         )
 
-    return {
+    result = {
         "user_email": email,
         "models": len(model_by_name),
         "vas": len(va_by_name),
@@ -1074,3 +1123,5 @@ def import_user_bundle(payload: dict) -> dict:
         "daily_clicks": len(payload.get("daily_clicks", [])),
         "snapshots": len(payload.get("snapshots", [])),
     }
+    _notify_persist(email)
+    return result

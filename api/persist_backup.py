@@ -45,6 +45,58 @@ def backup_path_for_user(email: str) -> Path:
     return BACKUP_DIR / f"{safe}.json"
 
 
+def snapshot_sqlite_copy() -> bool:
+    import database as db
+
+    src = db.DB_PATH
+    if not src.exists():
+        return False
+    dst = PERSIST_DIR / "grampulse.db"
+    try:
+        PERSIST_DIR.mkdir(parents=True, exist_ok=True)
+        with _lock:
+            shutil.copy2(src, dst)
+        logger.info("Copie SQLite vers %s", dst)
+        return True
+    except OSError as exc:
+        logger.warning("Copie SQLite échouée: %s", exc)
+        return False
+
+
+def restore_sqlite_if_available() -> bool:
+    import database as db
+
+    persist_db = PERSIST_DIR / "grampulse.db"
+    target = db.DB_PATH
+    if not persist_db.exists():
+        return False
+    if target.resolve() == persist_db.resolve():
+        return True
+    try:
+        if not target.exists() or persist_db.stat().st_mtime >= target.stat().st_mtime:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(persist_db, target)
+            logger.info("Base restaurée depuis %s vers %s", persist_db, target)
+            return True
+    except OSError as exc:
+        logger.warning("Restauration SQLite échouée: %s", exc)
+    return False
+
+
+def _persist_user_data(email: str) -> Path | None:
+    import database as db
+
+    bundle = export_bundle(db.DB_PATH, email)
+    path = write_bundle_file(bundle, backup_path_for_user(email))
+    snapshot_sqlite_copy()
+    logger.info(
+        "Sauvegarde persistante %s (%s comptes)",
+        path,
+        len(bundle.get("accounts", [])),
+    )
+    return path
+
+
 def schedule_user_backup(email: str) -> None:
     email = email.strip().lower()
     if not email:
@@ -52,16 +104,7 @@ def schedule_user_backup(email: str) -> None:
 
     def worker() -> None:
         try:
-            import database as db
-
-            bundle = export_bundle(db.DB_PATH, email)
-            path = backup_path_for_user(email)
-            write_bundle_file(bundle, path)
-            logger.info(
-                "Sauvegarde persistante %s (%s comptes)",
-                path,
-                len(bundle.get("accounts", [])),
-            )
+            _persist_user_data(email)
         except Exception as exc:
             logger.warning("Sauvegarde persistante échouée pour %s: %s", email, exc)
 
@@ -72,10 +115,11 @@ def snapshot_user_now(email: str) -> Path | None:
     email = email.strip().lower()
     if not email:
         return None
-    import database as db
-
-    bundle = export_bundle(db.DB_PATH, email)
-    return write_bundle_file(bundle, backup_path_for_user(email))
+    try:
+        return _persist_user_data(email)
+    except Exception as exc:
+        logger.warning("Sauvegarde immédiate échouée pour %s: %s", email, exc)
+        return None
 
 
 def list_persistent_backups() -> list[Path]:
@@ -103,12 +147,20 @@ def restore_users_from_persistent_backups() -> list[dict]:
         email = str(bundle.get("user_email", "")).strip().lower()
         if not email:
             continue
-        if db.list_models(email):
+        backup_count = len(bundle.get("accounts", []))
+        db_count = db.count_user_accounts(email)
+        if backup_count <= db_count:
             continue
         try:
             result = db.import_user_bundle(bundle)
-            restored.append({"restored": True, **result})
-            logger.info("Restauré depuis %s pour %s", path.name, email)
+            restored.append({"restored": True, "source_file": path.name, **result})
+            logger.info(
+                "Restauré depuis %s pour %s (%s → %s comptes)",
+                path.name,
+                email,
+                db_count,
+                backup_count,
+            )
         except Exception as exc:
             logger.warning("Restauration depuis %s échouée: %s", path.name, exc)
     return restored

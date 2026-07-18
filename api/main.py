@@ -54,11 +54,12 @@ app.include_router(restore_router)
 def startup() -> None:
     import logging
 
-    from persist_backup import maybe_migrate_tmp_db_to_persistent
+    from persist_backup import maybe_migrate_tmp_db_to_persistent, restore_sqlite_if_available
 
     logging.basicConfig(level=logging.INFO)
     import database as db
 
+    restore_sqlite_if_available()
     maybe_migrate_tmp_db_to_persistent(db.DB_PATH)
     init_db()
     from startup_restore import schedule_restore_in_background

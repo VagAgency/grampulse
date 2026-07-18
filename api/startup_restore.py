@@ -8,6 +8,7 @@ from pathlib import Path
 
 import database as db
 from backup_io import DEFAULT_BUNDLE_PATH
+from persist_backup import restore_users_from_persistent_backups
 
 logger = logging.getLogger("grampulse.startup_restore")
 
@@ -24,6 +25,16 @@ def maybe_restore_from_bundle(bundle_path: Path = DEFAULT_BUNDLE_PATH) -> dict |
     if disabled in ("0", "false", "no", "off"):
         return None
 
+    persistent = restore_users_from_persistent_backups()
+    if persistent:
+        first = persistent[0]
+        return {
+            "source": "persistent_disk",
+            "restored": True,
+            **first,
+            "users_restored": len(persistent),
+        }
+
     if not bundle_path.exists():
         logger.info("Auto-restore activé mais aucun fichier %s", bundle_path)
         return None
@@ -38,12 +49,15 @@ def maybe_restore_from_bundle(bundle_path: Path = DEFAULT_BUNDLE_PATH) -> dict |
     if not email:
         return None
 
-    existing = db.list_models(email)
-    if existing:
+    backup_count = len(bundle.get("accounts", []))
+    db_count = db.count_user_accounts(email)
+    if db_count >= backup_count:
         return {
             "skipped": True,
             "user_email": email,
-            "models": len(existing),
+            "models": len(db.list_models(email)),
+            "accounts": db_count,
+            "reason": "db_has_same_or_more_accounts",
         }
 
     result = db.import_user_bundle(bundle)
@@ -53,7 +67,7 @@ def maybe_restore_from_bundle(bundle_path: Path = DEFAULT_BUNDLE_PATH) -> dict |
         result.get("models", 0),
         result.get("accounts", 0),
     )
-    return {"restored": True, **result}
+    return {"source": "embedded_bundle", "restored": True, **result}
 
 
 def _restore_worker() -> None:
