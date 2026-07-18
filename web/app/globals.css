@@ -2239,6 +2239,21 @@ input:focus {
   border-color: rgba(139, 92, 246, 0.45);
 }
 
+.refresh-header-btn.is-locked {
+  opacity: 0.85;
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fcd34d;
+}
+
+.refresh-status-hint {
+  font-size: 0.72rem;
+  color: #fcd34d;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .refresh-header-btn-links:hover:not(:disabled) {
   border-color: rgba(56, 189, 248, 0.45);
 }
@@ -2356,6 +2371,13 @@ input:focus {
   line-height: 1.45;
   max-height: 120px;
   overflow-y: auto;
+}
+
+.bulk-refresh-notice {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #fcd34d;
+  line-height: 1.45;
 }
 
 .app-nav {

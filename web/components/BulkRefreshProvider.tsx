@@ -222,11 +222,16 @@ export function HeaderRefreshActions() {
 
   return (
     <div className="header-refresh-actions">
+      {refreshUsed && refreshStatus?.message ? (
+        <span className="refresh-status-hint" title={refreshStatus.message}>
+          Prochain refresh demain 8h
+        </span>
+      ) : null}
       <button
         type="button"
-        className={`refresh-header-btn${running && kind === "accounts" ? " is-loading" : ""}`}
+        className={`refresh-header-btn${running && kind === "accounts" ? " is-loading" : ""}${refreshUsed ? " is-locked" : ""}`}
         onClick={() => void refreshAccounts()}
-        disabled={running || refreshUsed}
+        disabled={running}
         title={
           refreshUsed
             ? refreshStatus?.message || "Refresh du jour déjà utilisé — prochain refresh demain à 8h"
@@ -255,9 +260,13 @@ export function HeaderRefreshActions() {
 }
 
 export function BulkRefreshProgress() {
-  const { running, kind, current, total, currentHandle, error } = useBulkRefresh();
+  const { running, kind, current, total, currentHandle, error, refreshStatus } = useBulkRefresh();
+  const refreshBlocked = refreshStatus ? !refreshStatus.available_now : false;
+  const blockedMessage =
+    refreshStatus?.message ||
+    "Refresh du jour déjà utilisé — prochain refresh demain à 8h (Europe/Paris).";
 
-  if (!running && !error) return null;
+  if (!running && !error && !refreshBlocked) return null;
 
   const pct = total > 0 ? Math.round((current / total) * 100) : running ? 35 : 0;
   const label =
@@ -289,6 +298,8 @@ export function BulkRefreshProgress() {
         </>
       ) : error ? (
         <p className="bulk-refresh-error">{error}</p>
+      ) : refreshBlocked ? (
+        <p className="bulk-refresh-notice">{blockedMessage}</p>
       ) : null}
     </div>
   );
