@@ -73,7 +73,28 @@ class HikerProfileNotFoundError(RuntimeError):
     pass
 
 
+def fetch_hiker_metrics(handle: str) -> dict[str, Any]:
+    """Profil + reels uniquement — vues et abonnés (2 appels HikerAPI)."""
+    user, user_id, handle = _fetch_hiker_user(handle)
+    clips = _extract_clips(user_id)
+    posts = clips[:HIKER_POSTS_LIMIT]
+    analysis = _compute_analysis(posts, user)
+    analysis["countryDistribution"] = []
+    return _build_hiker_payload(user, handle, posts, analysis, sync_scope="metrics")
+
+
 def fetch_hiker_insights(handle: str) -> dict[str, Any]:
+    """Profil + reels + posts — analyse complète (3+ appels HikerAPI)."""
+    user, user_id, handle = _fetch_hiker_user(handle)
+    clips = _extract_clips(user_id)
+    medias = _extract_medias(user_id)
+    posts = _merge_posts(clips, medias)[:HIKER_POSTS_LIMIT]
+    analysis = _compute_analysis(posts, user)
+    analysis["countryDistribution"] = _estimate_country_distribution(posts)
+    return _build_hiker_payload(user, handle, posts, analysis, sync_scope="videos")
+
+
+def _fetch_hiker_user(handle: str) -> tuple[dict[str, Any], str, str]:
     api_key = os.getenv("HIKERAPI_ACCESS_KEY", "").strip() or os.getenv("HIKER_API_TOKEN", "").strip()
     if not api_key:
         raise HikerNotConfiguredError(
@@ -92,13 +113,17 @@ def fetch_hiker_insights(handle: str) -> dict[str, Any]:
     user_id = str(user.get("pk") or user.get("id") or "")
     if not user_id:
         raise HikerProfileNotFoundError(f"Impossible de lire l'ID du profil @{handle}")
+    return user, user_id, handle
 
-    clips = _extract_clips(user_id)
-    medias = _extract_medias(user_id)
-    posts = _merge_posts(clips, medias)[:HIKER_POSTS_LIMIT]
-    analysis = _compute_analysis(posts, user)
-    analysis["countryDistribution"] = _estimate_country_distribution(posts)
 
+def _build_hiker_payload(
+    user: dict[str, Any],
+    handle: str,
+    posts: list[dict[str, Any]],
+    analysis: dict[str, Any],
+    *,
+    sync_scope: str,
+) -> dict[str, Any]:
     return {
         "profile": {
             "username": user.get("username") or handle,
@@ -115,6 +140,7 @@ def fetch_hiker_insights(handle: str) -> dict[str, Any]:
         "analysis": analysis,
         "posts": posts,
         "_source": "hiker",
+        "_sync_scope": sync_scope,
     }
 
 

@@ -4,7 +4,12 @@ import os
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Literal
 
-from hiker_provider import HikerNotConfiguredError, HikerProfileNotFoundError, fetch_hiker_insights
+from hiker_provider import (
+    HikerNotConfiguredError,
+    HikerProfileNotFoundError,
+    fetch_hiker_insights,
+    fetch_hiker_metrics,
+)
 from mock_provider import MockPrivateProfileError, build_mock_insights
 
 APIFY_TOKEN = os.getenv("APIFY_API_TOKEN", "").strip()
@@ -27,6 +32,7 @@ class InstagramProfileNotFoundError(RuntimeError):
 
 
 InstagramMode = Literal["mock", "hiker", "apify"]
+SyncScope = Literal["metrics", "videos"]
 
 
 def _hiker_key() -> str:
@@ -68,7 +74,12 @@ def _resolve_provider() -> str:
     return "mock"
 
 
-def fetch_instagram_insights(handle: str, *, force_refresh: bool = False) -> dict[str, Any]:
+def fetch_instagram_insights(
+    handle: str,
+    *,
+    force_refresh: bool = False,
+    sync_scope: SyncScope = "videos",
+) -> dict[str, Any]:
     handle = handle.lstrip("@").strip()
     if not handle:
         raise ValueError("Handle Instagram invalide")
@@ -82,6 +93,8 @@ def fetch_instagram_insights(handle: str, *, force_refresh: bool = False) -> dic
     provider = _resolve_provider()
     if provider == "hiker":
         try:
+            if sync_scope == "metrics":
+                return fetch_hiker_metrics(handle)
             return fetch_hiker_insights(handle)
         except HikerNotConfiguredError as exc:
             raise ApifyNotConfiguredError(str(exc)) from exc

@@ -21,7 +21,7 @@ import {
 
 export const GRAMPULSE_REFRESHED_EVENT = "grampulse-refreshed";
 
-type RefreshKind = "accounts" | "links" | null;
+type RefreshKind = "accounts" | "videos" | "links" | null;
 
 type BulkRefreshContextValue = {
   running: boolean;
@@ -35,6 +35,7 @@ type BulkRefreshContextValue = {
   overrideCode: string;
   setOverrideCode: (code: string) => void;
   refreshAccounts: (overrideCode?: string) => Promise<void>;
+  refreshVideos: () => Promise<void>;
   refreshLinks: () => Promise<void>;
   reloadRefreshStatus: () => Promise<void>;
 };
@@ -142,7 +143,7 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
           if (acc) setCurrentHandle(acc.handle);
         }, 8000);
 
-        const result = await refreshAllAccounts(email, code || undefined);
+        const result = await refreshAllAccounts(email, code || undefined, "metrics");
         clearProgressTimer();
 
         setCurrent(result.total);
@@ -163,7 +164,7 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
           setNotice(
             code
               ? "Refresh extra terminé."
-              : `${result.synced} compte(s) synchronisé(s). Prochain refresh demain à 8h.`
+              : `${result.synced} compte(s) synchronisé(s) (vues + abonnés). Prochain refresh demain à 8h.`
           );
         }
 
@@ -186,6 +187,56 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
     },
     [running, clearProgressTimer, refreshStatus, overrideCode, loadRefreshStatus]
   );
+
+  const refreshVideos = useCallback(async () => {
+    const email = getStoredEmail();
+    if (!email || running) return;
+
+    setRunning(true);
+    setKind("videos");
+    setError(null);
+    setNotice(null);
+    setCurrent(0);
+    setCurrentHandle(null);
+    clearProgressTimer();
+
+    try {
+      const { accounts } = await fetchRefreshTargets(email);
+      const count = accounts.length;
+      setTotal(count);
+
+      if (count === 0) return;
+
+      let simulated = 0;
+      progressTimer.current = setInterval(() => {
+        simulated = Math.min(simulated + 1, Math.max(count - 1, 1));
+        setCurrent(simulated);
+        const acc = accounts[simulated - 1];
+        if (acc) setCurrentHandle(acc.handle);
+      }, 12000);
+
+      const result = await refreshAllAccounts(email, undefined, "videos");
+      clearProgressTimer();
+
+      setCurrent(result.total);
+      setCurrentHandle(null);
+
+      if (result.errors?.length) {
+        setError(formatRefreshErrors(result.errors));
+      } else {
+        setNotice(`${result.synced} compte(s) — top vidéos et analyse mises à jour.`);
+      }
+
+      window.dispatchEvent(new CustomEvent(GRAMPULSE_REFRESHED_EVENT));
+    } catch (err) {
+      clearProgressTimer();
+      setError(err instanceof Error ? err.message : "Actualisation vidéos impossible.");
+    } finally {
+      setRunning(false);
+      setKind(null);
+      setCurrentHandle(null);
+    }
+  }, [running, clearProgressTimer]);
 
   const refreshLinks = useCallback(async () => {
     const email = getStoredEmail();
@@ -236,6 +287,7 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
       overrideCode,
       setOverrideCode,
       refreshAccounts,
+      refreshVideos,
       refreshLinks,
       reloadRefreshStatus: loadRefreshStatus,
     }),
@@ -250,6 +302,7 @@ export function BulkRefreshProvider({ children }: { children: ReactNode }) {
       refreshStatus,
       overrideCode,
       refreshAccounts,
+      refreshVideos,
       refreshLinks,
       loadRefreshStatus,
     ]
@@ -320,7 +373,7 @@ export function RefreshDailyBanner() {
 }
 
 export function HeaderRefreshActions() {
-  const { running, kind, refreshStatus, refreshAccounts, refreshLinks } = useBulkRefresh();
+  const { running, kind, refreshStatus, refreshAccounts, refreshVideos, refreshLinks } = useBulkRefresh();
   const refreshUsed = refreshStatus ? !refreshStatus.available_now : false;
 
   return (
@@ -333,7 +386,7 @@ export function HeaderRefreshActions() {
         title={
           refreshUsed
             ? refreshStatus?.message || "Refresh du jour déjà utilisé — voir le bandeau jaune"
-            : "Refresh quotidien Instagram — 1× par jour, reset à 8h (Europe/Paris)"
+            : "Vues et abonnés uniquement — 1× par jour, reset à 8h (Europe/Paris)"
         }
       >
         {running && kind === "accounts"
@@ -341,6 +394,17 @@ export function HeaderRefreshActions() {
           : refreshUsed
             ? "↻ Comptes (8h demain)"
             : "↻ Comptes (1×/jour)"}
+      </button>
+      <button
+        type="button"
+        className={`refresh-header-btn refresh-header-btn-videos${
+          running && kind === "videos" ? " is-loading" : ""
+        }`}
+        onClick={() => void refreshVideos()}
+        disabled={running}
+        title="Top vidéos, analyse des posts — sans limite quotidienne (consomme plus de crédits HikerAPI)"
+      >
+        {running && kind === "videos" ? "Vidéos…" : "↻ Vidéos"}
       </button>
       <button
         type="button"
@@ -363,14 +427,19 @@ export function BulkRefreshProgress() {
   if (!running) return null;
 
   const pct = total > 0 ? Math.round((current / total) * 100) : 35;
-  const label = kind === "links" ? "Synchronisation Linkscale…" : "Actualisation des comptes…";
+  const label =
+    kind === "links"
+      ? "Synchronisation Linkscale…"
+      : kind === "videos"
+        ? "Actualisation des vidéos et analyses…"
+        : "Actualisation des vues et abonnés…";
 
   return (
     <div className="bulk-refresh-progress is-active" role="status" aria-live="polite">
       <div className="bulk-refresh-progress-head">
         <span>
           {label}
-          {kind === "accounts" && total > 0 ? " (peut prendre plusieurs minutes)" : ""}
+          {kind !== "links" && total > 0 ? " (peut prendre plusieurs minutes)" : ""}
         </span>
         <span className="bulk-refresh-progress-count">
           {total > 0 ? `${current}/${total}` : "…"}

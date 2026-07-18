@@ -310,11 +310,19 @@ export async function addAccountToModel(email: string, modelId: number, handle: 
   return data;
 }
 
-export async function refreshAccount(email: string, modelId: number, handle: string, overrideCode?: string) {
+export type SyncScope = "metrics" | "videos";
+
+export async function refreshAccount(
+  email: string,
+  modelId: number,
+  handle: string,
+  overrideCode?: string,
+  scope: SyncScope = "metrics"
+) {
   const headers: Record<string, string> = { ...authHeaders(email) as Record<string, string> };
   if (overrideCode) headers["X-Refresh-Override"] = overrideCode;
   const res = await fetchApi(
-    `${API}/models/${modelId}/accounts/${encodeURIComponent(handle)}/refresh`,
+    `${API}/models/${modelId}/accounts/${encodeURIComponent(handle)}/refresh?scope=${scope}`,
     { method: "POST", headers }
   );
   const data = await res.json();
@@ -366,16 +374,22 @@ export type RefreshAllResult = {
   linkscale?: { synced?: number; error?: string };
 };
 
-export async function refreshAllAccounts(email: string, overrideCode?: string): Promise<RefreshAllResult> {
+export async function refreshAllAccounts(
+  email: string,
+  overrideCode?: string,
+  scope: SyncScope = "metrics"
+): Promise<RefreshAllResult> {
   const headers: Record<string, string> = {
     ...(authHeaders(email) as Record<string, string>),
     "Content-Type": "application/json",
   };
   if (overrideCode) headers["X-Refresh-Override"] = overrideCode;
-  const res = await fetchApi(`${API}/refresh/all`, {
+  const body: { override_code?: string; scope?: SyncScope } = { scope };
+  if (overrideCode) body.override_code = overrideCode;
+  const res = await fetchApi(`${API}/refresh/all?scope=${scope}`, {
     method: "POST",
     headers,
-    body: JSON.stringify(overrideCode ? { override_code: overrideCode } : {}),
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || "Actualisation globale impossible.");

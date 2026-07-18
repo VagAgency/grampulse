@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
+from typing import Literal, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -54,7 +54,7 @@ def _assert_model(email: str, model_id: int) -> dict:
 
 def _sync_account_background(email: str, model_id: int, handle: str) -> None:
     try:
-        sync_account(email, model_id, handle, force_refresh=True)
+        sync_account(email, model_id, handle, force_refresh=True, sync_scope="videos")
         from persist_backup import schedule_user_backup
 
         schedule_user_backup(email)
@@ -223,6 +223,7 @@ def add_account(
 async def refresh_account(
     model_id: int,
     handle: str,
+    scope: Literal["metrics", "videos"] = Query(default="metrics"),
     x_user_email: Optional[str] = Header(default=None),
     x_refresh_override: Optional[str] = Header(default=None, alias="X-Refresh-Override"),
 ):
@@ -239,6 +240,7 @@ async def refresh_account(
         handle,
         force_refresh=True,
         override_daily_limit=is_valid_override_code(x_refresh_override),
+        sync_scope=scope,
     )
 
 

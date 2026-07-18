@@ -39,7 +39,7 @@ export default function AccountPage() {
   const router = useRouter();
   const [data, setData] = useState<AccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState<"metrics" | "videos" | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [chartMode, setChartMode] = useState<ChartMode>("views");
@@ -123,22 +123,24 @@ export default function AccountPage() {
     return period.posts;
   }, [data, period.posts, chartDays]);
 
-  async function onRefresh() {
+  async function onRefresh(scope: "metrics" | "videos") {
     const email = getStoredEmail();
     if (!email) return;
-    setRefreshing(true);
+    setRefreshing(scope);
     setError("");
     setNotice("");
     try {
-      const result = await refreshAccount(email, modelId, handle);
+      const result = await refreshAccount(email, modelId, handle, undefined, scope);
       await loadDetail();
       if (result.skipped && result.message) {
         setNotice(result.message);
+      } else if (scope === "videos") {
+        setNotice("Top vidéos et analyse mises à jour.");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
     } finally {
-      setRefreshing(false);
+      setRefreshing(null);
     }
   }
 
@@ -146,9 +148,24 @@ export default function AccountPage() {
     <AppShell email={null} showNav={false}>
         <AppSubHeader backHref={`/models/${modelId}`} backLabel="Retour au modèle">
           {data ? (
-            <button type="button" className="btn btn-primary btn-sm" disabled={refreshing} onClick={onRefresh}>
-              {refreshing ? "Actualisation…" : "Actualiser (1×/j · 8h)"}
-            </button>
+            <div className="header-refresh-actions">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                disabled={refreshing !== null}
+                onClick={() => void onRefresh("metrics")}
+              >
+                {refreshing === "metrics" ? "Vues…" : "↻ Vues (1×/j)"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                disabled={refreshing !== null}
+                onClick={() => void onRefresh("videos")}
+              >
+                {refreshing === "videos" ? "Vidéos…" : "↻ Vidéos"}
+              </button>
+            </div>
           ) : null}
         </AppSubHeader>
 

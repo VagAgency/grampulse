@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import date, datetime, timedelta
 
 import database as db
@@ -8,6 +9,7 @@ from health import compute_health_score
 from instagram_provider import (
     ApifyNotConfiguredError,
     InstagramProfileNotFoundError,
+    SyncScope,
     compute_views_7d_from_posts,
     estimate_views_today,
     extract_daily_views_from_posts,
@@ -32,6 +34,7 @@ def _cached_sync_result(account: dict, snapshot: dict, *, message: str, next_ava
         "source": analysis.get("source") or get_instagram_mode(),
         "cached": True,
         "skipped": True,
+        "sync_scope": analysis.get("sync_scope") or "metrics",
         "last_synced_at": snapshot.get("fetched_at"),
         "message": message,
         "next_available_at": next_available_at,
@@ -46,7 +49,10 @@ def _maybe_skip_daily_refresh(
     force_refresh: bool,
     daily_batch: bool,
     override_daily_limit: bool = False,
+    sync_scope: SyncScope = "metrics",
 ) -> dict | None:
+    if sync_scope != "metrics":
+        return None
     if not force_refresh or daily_batch or override_daily_limit or get_instagram_mode() == "mock":
         return None
 
@@ -69,6 +75,61 @@ def _maybe_skip_daily_refresh(
     )
 
 
+def _snapshot_analysis(snapshot: dict | None) -> dict:
+    if not snapshot:
+        return {}
+    analysis = snapshot.get("analysis_json") or {}
+    if isinstance(analysis, str):
+        try:
+            analysis = json.loads(analysis)
+        except json.JSONDecodeError:
+            analysis = {}
+    return analysis if isinstance(analysis, dict) else {}
+
+
+def _snapshot_top_posts(snapshot: dict | None) -> list[dict]:
+    if not snapshot:
+        return []
+    top_posts = snapshot.get("top_posts_json") or []
+    if isinstance(top_posts, str):
+        try:
+            top_posts = json.loads(top_posts)
+        except json.JSONDecodeError:
+            top_posts = []
+    return top_posts if isinstance(top_posts, list) else []
+
+
+def _apply_metrics_snapshot_merge(
+    normalized: dict,
+    prev_snapshot: dict | None,
+    *,
+    score: int,
+    label: str,
+    breakdown: dict,
+    top_posts: list[dict],
+) -> tuple[int, str, dict, list[dict], float | None, float | None, float | None, dict]:
+    """Conserve top vidéos / analyse lors d'un refresh métriques."""
+    if not prev_snapshot:
+        return score, label, breakdown, top_posts, None, None, None, normalized.get("raw") or {}
+
+    prev_analysis = _snapshot_analysis(prev_snapshot)
+    merged_top = _snapshot_top_posts(prev_snapshot) or top_posts
+    merged_score = int(prev_snapshot.get("health_score") or score)
+    merged_label = str(prev_snapshot.get("health_label") or label)
+    merged_breakdown = prev_analysis.get("breakdown") or breakdown
+
+    return (
+        merged_score,
+        merged_label,
+        merged_breakdown,
+        merged_top,
+        prev_snapshot.get("avg_engagement_rate"),
+        prev_snapshot.get("avg_likes"),
+        prev_snapshot.get("avg_comments"),
+        normalized.get("raw") or {},
+    )
+
+
 def sync_account(
     email: str,
     model_id: int,
@@ -77,6 +138,7 @@ def sync_account(
     force_refresh: bool = False,
     daily_batch: bool = False,
     override_daily_limit: bool = False,
+    sync_scope: SyncScope = "metrics",
 ) -> dict:
     handle = handle.lstrip("@").lower()
     is_mock = get_instagram_mode() == "mock"
@@ -88,12 +150,16 @@ def sync_account(
         force_refresh=force_refresh,
         daily_batch=daily_batch,
         override_daily_limit=override_daily_limit,
+        sync_scope=sync_scope,
     )
     if cached:
         return cached
 
+    existing = db.get_tracked_account(email, handle, model_id=model_id)
+    prev_snapshot = db.get_latest_snapshot(existing["id"]) if existing else None
+
     try:
-        raw = fetch_instagram_insights(handle, force_refresh=force_refresh)
+        raw = fetch_instagram_insights(handle, force_refresh=force_refresh, sync_scope=sync_scope)
         normalized = normalize_insights(raw)
     except ApifyNotConfiguredError as exc:
         raise exc
@@ -105,6 +171,36 @@ def sync_account(
     score, label, breakdown = compute_health_score(normalized)
     top_posts = normalized.get("top_posts") or []
     views_today = estimate_views_today(normalized)
+
+    avg_engagement_rate = normalized.get("avg_engagement_rate")
+    avg_likes = normalized.get("avg_likes")
+    avg_comments = normalized.get("avg_comments")
+    raw_payload = normalized.get("raw") or {}
+
+    if sync_scope == "metrics":
+        (
+            score,
+            label,
+            breakdown,
+            top_posts,
+            avg_engagement_rate,
+            avg_likes,
+            avg_comments,
+            raw_payload,
+        ) = _apply_metrics_snapshot_merge(
+            normalized,
+            prev_snapshot,
+            score=score,
+            label=label,
+            breakdown=breakdown,
+            top_posts=top_posts,
+        )
+        if avg_engagement_rate is None:
+            avg_engagement_rate = normalized.get("avg_engagement_rate")
+        if avg_likes is None:
+            avg_likes = normalized.get("avg_likes")
+        if avg_comments is None:
+            avg_comments = normalized.get("avg_comments")
 
     account = db.add_tracked_account(
         user_email=email,
@@ -155,30 +251,54 @@ def sync_account(
         )
     status = derive_status(score, views_7d, views_prev, profile=None)
 
+    prev_analysis = _snapshot_analysis(prev_snapshot)
+    analysis_posts = (
+        (prev_analysis.get("all_posts") or top_posts)
+        if sync_scope == "metrics"
+        else (normalized.get("all_posts") or top_posts)
+    )
+
     db.save_snapshot(
         tracked_account_id=account["id"],
         followers=normalized.get("followers"),
         following=normalized.get("following"),
         posts_count=normalized.get("posts_count"),
-        avg_engagement_rate=normalized.get("avg_engagement_rate"),
-        avg_likes=normalized.get("avg_likes"),
-        avg_comments=normalized.get("avg_comments"),
+        avg_engagement_rate=avg_engagement_rate,
+        avg_likes=avg_likes,
+        avg_comments=avg_comments,
         health_score=score,
         health_label=label,
         top_posts=top_posts,
         analysis={
             "breakdown": breakdown,
-            "median_engagement": normalized.get("median_engagement"),
-            "top_hashtags": normalized.get("top_hashtags"),
-            "country_distribution": normalized.get("country_distribution"),
-            "all_posts": normalized.get("all_posts") or top_posts,
-            "posts_analyzed": normalized.get("posts_analyzed"),
+            "median_engagement": (
+                prev_analysis.get("median_engagement")
+                if sync_scope == "metrics" and prev_analysis.get("median_engagement") is not None
+                else normalized.get("median_engagement")
+            ),
+            "top_hashtags": (
+                prev_analysis.get("top_hashtags")
+                if sync_scope == "metrics" and prev_analysis.get("top_hashtags")
+                else normalized.get("top_hashtags")
+            ),
+            "country_distribution": (
+                prev_analysis.get("country_distribution")
+                if sync_scope == "metrics" and prev_analysis.get("country_distribution")
+                else normalized.get("country_distribution")
+            ),
+            "all_posts": analysis_posts,
+            "posts_analyzed": (
+                prev_analysis.get("posts_analyzed")
+                if sync_scope == "metrics" and prev_analysis.get("posts_analyzed")
+                else normalized.get("posts_analyzed")
+            ),
             "bio": normalized.get("bio"),
             "is_verified": normalized.get("is_verified"),
             "is_business": normalized.get("is_business"),
             "source": get_instagram_mode(),
+            "sync_scope": sync_scope,
         },
-        raw=normalized.get("raw") or {},
+        raw=raw_payload,
         status=status,
     )
 
@@ -190,4 +310,5 @@ def sync_account(
         "source": get_instagram_mode(),
         "cached": False,
         "skipped": False,
+        "sync_scope": sync_scope,
     }

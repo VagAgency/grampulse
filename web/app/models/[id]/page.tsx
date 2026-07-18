@@ -473,7 +473,7 @@ export default function ModelPage() {
                               disabled={refreshingHandle === acc.handle}
                               onClick={() => onRefresh(acc.handle)}
                             >
-                              {refreshingHandle === acc.handle ? "…" : "Refresh (1×/j · 8h)"}
+                              {refreshingHandle === acc.handle ? "…" : "Vues (1×/j)"}
                             </button>
                             <button
                               type="button"

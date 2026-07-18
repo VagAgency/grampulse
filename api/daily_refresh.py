@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -77,6 +78,18 @@ class DailyRefreshStatus:
         )
 
 
+def _snapshot_sync_scope(snapshot: dict) -> str | None:
+    analysis = snapshot.get("analysis_json") or {}
+    if isinstance(analysis, str):
+        try:
+            analysis = json.loads(analysis)
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(analysis, dict):
+        return None
+    return analysis.get("sync_scope")
+
+
 def _user_synced_since(email: str, since: datetime) -> bool:
     for acc in db.list_all_accounts_enriched(email):
         account_id = acc.get("id")
@@ -84,6 +97,9 @@ def _user_synced_since(email: str, since: datetime) -> bool:
             continue
         snapshot = db.get_latest_snapshot(account_id)
         if not snapshot:
+            continue
+        scope = _snapshot_sync_scope(snapshot)
+        if scope == "videos":
             continue
         fetched = _parse_fetched_at(snapshot.get("fetched_at"))
         if fetched and fetched.astimezone(_tz()) >= since.astimezone(_tz()):
