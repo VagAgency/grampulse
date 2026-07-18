@@ -17,7 +17,14 @@ def _resolve_db_path() -> Path:
 
     raw = os.getenv("GRAMPULSE_DB", "").strip()
     if raw:
-        return Path(raw).expanduser()
+        candidate = Path(raw).expanduser()
+        if str(candidate).startswith("/tmp/"):
+            try:
+                persist_dir.mkdir(parents=True, exist_ok=True)
+                return persist_db
+            except OSError:
+                pass
+        return candidate
     return Path(__file__).parent / "grampulse.db"
 
 
