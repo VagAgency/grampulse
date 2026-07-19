@@ -149,7 +149,7 @@ export default function PlanningPage() {
             Contenu <span className="gradient-text">modèles</span>
           </>
         }
-        subtitle="Vue compacte — filtre par modèle, cherche par titre ou texte, clique une ligne pour le détail."
+        subtitle="Vue compacte — filtre par modèle, cherche par titre ou texte, clique une ligne pour le détail. Les liens Instagram sont téléchargés via SnapInsta. Indépendant des boutons ↻ Comptes / ↻ Vidéos du dashboard."
       />
 
       {error ? <p className="status err">{error}</p> : null}

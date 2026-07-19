@@ -1045,6 +1045,7 @@ def has_active_access(email: str) -> bool:
 
 
 def clear_user_data(user_email: str) -> None:
+    """Dashboard data only — never touches content_plans or /var/data/content files."""
     email = user_email.strip().lower()
     with get_db() as conn:
         account_ids = [
@@ -1161,7 +1162,7 @@ def import_user_bundle(payload: dict) -> dict:
     return result
 
 
-# --- Content planning ---
+# --- Content planning (independent from dashboard refresh / account backup) ---
 
 
 def create_content_plan(
@@ -1201,7 +1202,6 @@ def create_content_plan(
             (cur.lastrowid,),
         ).fetchone()
         result = dict(row)
-    _notify_persist(user_email)
     return result
 
 
@@ -1314,7 +1314,6 @@ def update_content_plan(
             (plan_id,),
         ).fetchone()
         result = dict(row)
-    _notify_persist(user_email)
     return result
 
 
@@ -1324,6 +1323,5 @@ def delete_content_plan(user_email: str, plan_id: int) -> bool:
             "DELETE FROM content_plans WHERE id = ? AND user_email = ?",
             (plan_id, user_email.strip().lower()),
         )
-    _notify_persist(user_email)
     return cur.rowcount > 0
 
