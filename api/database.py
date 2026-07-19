@@ -191,6 +191,7 @@ def init_db() -> None:
                 source_status TEXT NOT NULL DEFAULT 'pending',
                 source_error TEXT,
                 model_status TEXT NOT NULL DEFAULT 'empty',
+                video_text TEXT,
                 access_token TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
@@ -201,6 +202,9 @@ def init_db() -> None:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_content_plans_user ON content_plans(user_email, updated_at DESC)"
         )
+        plan_cols = {row[1] for row in conn.execute("PRAGMA table_info(content_plans)").fetchall()}
+        if "video_text" not in plan_cols:
+            conn.execute("ALTER TABLE content_plans ADD COLUMN video_text TEXT")
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
@@ -1167,6 +1171,7 @@ def create_content_plan(
     title: str | None = None,
     model_id: int | None = None,
     scheduled_at: str | None = None,
+    video_text: str | None = None,
 ) -> dict:
     ensure_user(user_email)
     now = _now()
@@ -1175,9 +1180,9 @@ def create_content_plan(
         cur = conn.execute(
             """
             INSERT INTO content_plans (
-                user_email, model_id, title, source_url, scheduled_at,
+                user_email, model_id, title, source_url, scheduled_at, video_text,
                 source_status, model_status, access_token, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, 'pending', 'empty', ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, 'pending', 'empty', ?, ?, ?)
             """,
             (
                 user_email.strip().lower(),
@@ -1185,6 +1190,7 @@ def create_content_plan(
                 (title or "").strip() or None,
                 source_url.strip(),
                 scheduled_at,
+                (video_text or "").strip() or None,
                 token,
                 now,
                 now,
@@ -1199,16 +1205,37 @@ def create_content_plan(
     return result
 
 
-def list_content_plans(user_email: str) -> list[dict]:
+def list_content_plans(
+    user_email: str,
+    *,
+    query: str | None = None,
+    model_id: int | None = None,
+) -> list[dict]:
+    sql_parts = ["SELECT * FROM content_plans WHERE user_email = ?"]
+    params: list = [user_email.strip().lower()]
+
+    if model_id is not None:
+        sql_parts.append("AND model_id = ?")
+        params.append(model_id)
+
+    if query and query.strip():
+        for word in query.strip().split():
+            token = word.strip()
+            if not token:
+                continue
+            like = f"%{token.lower()}%"
+            sql_parts.append(
+                "AND (LOWER(COALESCE(title, '')) LIKE ? "
+                "OR LOWER(COALESCE(video_text, '')) LIKE ? "
+                "OR LOWER(source_url) LIKE ?)"
+            )
+            params.extend([like, like, like])
+
+    sql_parts.append("ORDER BY COALESCE(scheduled_at, updated_at) DESC, id DESC")
+    statement = " ".join(sql_parts)
+
     with get_db() as conn:
-        rows = conn.execute(
-            """
-            SELECT * FROM content_plans
-            WHERE user_email = ?
-            ORDER BY COALESCE(scheduled_at, updated_at) DESC, id DESC
-            """,
-            (user_email.strip().lower(),),
-        ).fetchall()
+        rows = conn.execute(statement, params).fetchall()
         return [dict(r) for r in rows]
 
 
@@ -1240,6 +1267,7 @@ def update_content_plan(
     source_status: str | None = None,
     source_error: str | None = None,
     model_status: str | None = None,
+    video_text: str | None = None,
 ) -> dict:
     existing = get_content_plan(user_email, plan_id)
     if not existing:
@@ -1265,6 +1293,9 @@ def update_content_plan(
     if model_status is not None:
         fields.append("model_status = ?")
         values.append(model_status)
+    if video_text is not None:
+        fields.append("video_text = ?")
+        values.append(video_text.strip() or None)
 
     fields.append("updated_at = ?")
     values.append(_now())

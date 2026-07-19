@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Optional
@@ -29,12 +27,14 @@ logger = logging.getLogger("grampulse.planning")
 class CreatePlanBody(BaseModel):
     source_url: str = Field(..., min_length=8, max_length=2048)
     title: Optional[str] = Field(default=None, max_length=120)
+    video_text: Optional[str] = Field(default=None, max_length=8000)
     model_id: Optional[int] = None
     scheduled_at: Optional[str] = Field(default=None, max_length=32)
 
 
 class UpdatePlanBody(BaseModel):
     title: Optional[str] = Field(default=None, max_length=120)
+    video_text: Optional[str] = Field(default=None, max_length=8000)
     model_id: Optional[int] = None
     scheduled_at: Optional[str] = None
 
@@ -88,10 +88,14 @@ def _fetch_source_background(email: str, plan_id: int) -> None:
 
 
 @router.get("")
-def list_plans(x_user_email: Optional[str] = Header(default=None)):
+def list_plans(
+    q: Optional[str] = Query(default=None, max_length=200),
+    model_id: Optional[int] = Query(default=None),
+    x_user_email: Optional[str] = Header(default=None),
+):
     email = _user_email(x_user_email)
-    plans = db.list_content_plans(email)
-    return {"plans": [_enrich_plan(p) for p in plans]}
+    plans = db.list_content_plans(email, query=q, model_id=model_id)
+    return {"plans": [_enrich_plan(p) for p in plans], "count": len(plans)}
 
 
 @router.post("")
@@ -112,6 +116,7 @@ def create_plan(
         title=body.title,
         model_id=body.model_id,
         scheduled_at=body.scheduled_at,
+        video_text=body.video_text,
     )
     background_tasks.add_task(_fetch_source_background, email, plan["id"])
     return {"plan": _enrich_plan(plan), "fetching": True}
@@ -131,15 +136,10 @@ def update_plan(
 ):
     email = _user_email(x_user_email)
     _get_plan_or_404(email, plan_id)
-    if body.model_id is not None:
-        _assert_model(email, body.model_id)
-    updated = db.update_content_plan(
-        email,
-        plan_id,
-        title=body.title,
-        model_id=body.model_id,
-        scheduled_at=body.scheduled_at,
-    )
+    payload = body.model_dump(exclude_unset=True)
+    if payload.get("model_id") is not None:
+        _assert_model(email, payload["model_id"])
+    updated = db.update_content_plan(email, plan_id, **payload)
     return {"plan": _enrich_plan(updated)}
 
 

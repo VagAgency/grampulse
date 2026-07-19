@@ -7,25 +7,48 @@ import {
   planModelMediaUrl,
   planSourceMediaUrl,
   refetchContentPlanSource,
+  updateContentPlan,
   uploadPlanModelVideo,
 } from "@/lib/api";
 import { VideoDropZone } from "@/components/VideoDropZone";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 type Props = {
   email: string;
   plan: ContentPlan;
+  searchQuery?: string;
   onChange: () => void;
 };
 
-export function ContentPlanCard({ email, plan, onChange }: Props) {
+function highlightText(text: string, query: string): ReactNode {
+  const q = query.trim();
+  if (!q || !text) return text;
+  const words = q.split(/\s+/).filter(Boolean);
+  if (!words.length) return text;
+  const pattern = new RegExp(`(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+  const parts = text.split(pattern);
+  const lowerWords = new Set(words.map((w) => w.toLowerCase()));
+  return parts.map((part, i) =>
+    lowerWords.has(part.toLowerCase()) ? (
+      <mark key={i} className="library-highlight">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
+export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [editingText, setEditingText] = useState(false);
+  const [draftText, setDraftText] = useState(plan.video_text || "");
 
   const sourceUrl = planSourceMediaUrl(plan);
   const modelUrl = planModelMediaUrl(plan);
-  const title = plan.title || plan.source_url;
+  const title = plan.title || "Sans titre";
 
   async function onUpload(file: File) {
     setUploading(true);
@@ -69,13 +92,27 @@ export function ContentPlanCard({ email, plan, onChange }: Props) {
   }
 
   async function onDelete() {
-    if (!window.confirm("Supprimer ce plan ?")) return;
+    if (!window.confirm("Supprimer cette vidéo de la bibliothèque ?")) return;
     setBusy(true);
     try {
       await deleteContentPlan(email, plan.id);
       onChange();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Suppression impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSaveText() {
+    setBusy(true);
+    setError("");
+    try {
+      await updateContentPlan(email, plan.id, { video_text: draftText.trim() || "" });
+      setEditingText(false);
+      onChange();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sauvegarde impossible.");
     } finally {
       setBusy(false);
     }
@@ -94,9 +131,14 @@ export function ContentPlanCard({ email, plan, onChange }: Props) {
     <article className="card planning-card">
       <header className="planning-card-head">
         <div>
-          <h3 className="planning-card-title">{title}</h3>
+          <h3 className="planning-card-title">{highlightText(title, searchQuery)}</h3>
           <p className="planning-card-meta">
-            {plan.model_name ? `${plan.model_name} · ` : ""}
+            {plan.model_name ? (
+              <span className="library-model-badge">{plan.model_name}</span>
+            ) : (
+              "Sans modèle"
+            )}
+            {" · "}
             {plan.scheduled_at
               ? new Date(`${plan.scheduled_at}T12:00:00`).toLocaleDateString("fr-FR")
               : "Sans date"}
@@ -111,6 +153,58 @@ export function ContentPlanCard({ email, plan, onChange }: Props) {
           Suppr.
         </button>
       </header>
+
+      {(plan.video_text || editingText) && (
+        <div className="library-text-block">
+          <div className="library-text-head">
+            <span className="planning-col-label">Texte du reel</span>
+            {!editingText ? (
+              <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setEditingText(true)}>
+                Modifier
+              </button>
+            ) : null}
+          </div>
+          {editingText ? (
+            <>
+              <textarea
+                rows={4}
+                value={draftText}
+                onChange={(e) => setDraftText(e.target.value)}
+                className="linkscale-input library-textarea"
+              />
+              <div className="library-text-actions">
+                <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => void onSaveText()}>
+                  Enregistrer
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={busy}
+                  onClick={() => {
+                    setDraftText(plan.video_text || "");
+                    setEditingText(false);
+                  }}
+                >
+                  Annuler
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="library-text-content">{highlightText(plan.video_text || "", searchQuery)}</p>
+          )}
+        </div>
+      )}
+
+      {!plan.video_text && !editingText ? (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm library-add-text-btn"
+          disabled={busy}
+          onClick={() => setEditingText(true)}
+        >
+          + Ajouter le texte du reel
+        </button>
+      ) : null}
 
       {plan.source_error ? <p className="status err">{plan.source_error}</p> : null}
       {error ? <p className="status err">{error}</p> : null}

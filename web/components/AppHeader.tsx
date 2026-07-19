@@ -19,7 +19,7 @@ const NAV: { key: NavKey; href: string; label: string }[] = [
   { key: "leaderboard", href: "/leaderboard", label: "Top vidéos" },
   { key: "equipe", href: "/equipe", label: "Rang équipe" },
   { key: "suivi", href: "/suivi", label: "Suivi" },
-  { key: "planning", href: "/planning", label: "Planning" },
+  { key: "planning", href: "/planning", label: "Bibliothèque" },
 ];
 
 export function AppHeader({ email, active }: Props) {

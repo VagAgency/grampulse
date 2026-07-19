@@ -863,6 +863,7 @@ export type ContentPlan = {
   model_id: number | null;
   model_name?: string | null;
   title: string | null;
+  video_text: string | null;
   source_url: string;
   scheduled_at: string | null;
   source_status: "pending" | "downloading" | "ready" | "failed";
@@ -889,16 +890,29 @@ export function planModelMediaUrl(plan: ContentPlan, download = false): string |
   return `${API}/planning/${plan.id}/media/model?${q}`;
 }
 
-export async function fetchContentPlans(email: string): Promise<ContentPlan[]> {
-  const res = await fetchApi(`${API}/planning`, { headers: authHeaders(email) });
+export async function fetchContentPlans(
+  email: string,
+  options?: { q?: string; modelId?: number }
+): Promise<ContentPlan[]> {
+  const params = new URLSearchParams();
+  if (options?.q?.trim()) params.set("q", options.q.trim());
+  if (options?.modelId) params.set("model_id", String(options.modelId));
+  const qs = params.toString();
+  const res = await fetchApi(`${API}/planning${qs ? `?${qs}` : ""}`, { headers: authHeaders(email) });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || "Planification indisponible.");
+  if (!res.ok) throw new Error(data.detail || "Bibliothèque indisponible.");
   return data.plans;
 }
 
 export async function createContentPlan(
   email: string,
-  payload: { source_url: string; title?: string; model_id?: number; scheduled_at?: string }
+  payload: {
+    source_url: string;
+    title?: string;
+    video_text?: string;
+    model_id?: number;
+    scheduled_at?: string;
+  }
 ): Promise<ContentPlan> {
   const res = await fetchApi(`${API}/planning`, {
     method: "POST",
@@ -907,6 +921,21 @@ export async function createContentPlan(
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || "Création impossible.");
+  return data.plan;
+}
+
+export async function updateContentPlan(
+  email: string,
+  planId: number,
+  payload: { title?: string; video_text?: string; model_id?: number | null; scheduled_at?: string | null }
+): Promise<ContentPlan> {
+  const res = await fetchApi(`${API}/planning/${planId}`, {
+    method: "PATCH",
+    headers: authHeaders(email),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Mise à jour impossible.");
   return data.plan;
 }
 
