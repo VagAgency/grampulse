@@ -892,11 +892,12 @@ export function planModelMediaUrl(plan: ContentPlan, download = false): string |
 
 export async function fetchContentPlans(
   email: string,
-  options?: { q?: string; modelId?: number }
+  options?: { q?: string; modelId?: number; unassigned?: boolean }
 ): Promise<ContentPlan[]> {
   const params = new URLSearchParams();
   if (options?.q?.trim()) params.set("q", options.q.trim());
-  if (options?.modelId) params.set("model_id", String(options.modelId));
+  if (options?.unassigned) params.set("unassigned", "true");
+  else if (options?.modelId) params.set("model_id", String(options.modelId));
   const qs = params.toString();
   const res = await fetchApi(`${API}/planning${qs ? `?${qs}` : ""}`, { headers: authHeaders(email) });
   const data = await res.json();

@@ -91,10 +91,11 @@ def _fetch_source_background(email: str, plan_id: int) -> None:
 def list_plans(
     q: Optional[str] = Query(default=None, max_length=200),
     model_id: Optional[int] = Query(default=None),
+    unassigned: bool = Query(default=False),
     x_user_email: Optional[str] = Header(default=None),
 ):
     email = _user_email(x_user_email)
-    plans = db.list_content_plans(email, query=q, model_id=model_id)
+    plans = db.list_content_plans(email, query=q, model_id=model_id, unassigned_only=unassigned)
     return {"plans": [_enrich_plan(p) for p in plans], "count": len(plans)}
 
 

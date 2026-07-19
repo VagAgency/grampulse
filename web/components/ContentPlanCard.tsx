@@ -40,6 +40,7 @@ function highlightText(text: string, query: string): ReactNode {
 }
 
 export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Props) {
+  const [expanded, setExpanded] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +50,9 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
   const sourceUrl = planSourceMediaUrl(plan);
   const modelUrl = planModelMediaUrl(plan);
   const title = plan.title || "Sans titre";
+  const dateLabel = plan.scheduled_at
+    ? new Date(`${plan.scheduled_at}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
+    : null;
 
   async function onUpload(file: File) {
     setUploading(true);
@@ -63,7 +67,8 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
     }
   }
 
-  async function onDownload(kind: "source" | "model") {
+  async function onDownload(kind: "source" | "model", e?: React.MouseEvent) {
+    e?.stopPropagation();
     const url =
       kind === "source" ? planSourceMediaUrl(plan, true) : planModelMediaUrl(plan, true);
     if (!url) return;
@@ -91,8 +96,9 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
     }
   }
 
-  async function onDelete() {
-    if (!window.confirm("Supprimer cette vidéo de la bibliothèque ?")) return;
+  async function onDelete(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    if (!window.confirm("Supprimer cette vidéo ?")) return;
     setBusy(true);
     try {
       await deleteContentPlan(email, plan.id);
@@ -118,145 +124,175 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
     }
   }
 
-  const sourceStatusLabel =
+  const statusDot =
     plan.source_status === "ready"
-      ? "Prête"
-      : plan.source_status === "downloading"
-        ? "Téléchargement…"
-        : plan.source_status === "failed"
-          ? "Échec"
-          : "En attente";
+      ? "ready"
+      : plan.source_status === "failed"
+        ? "failed"
+        : "pending";
 
   return (
-    <article className="card planning-card">
-      <header className="planning-card-head">
-        <div>
-          <h3 className="planning-card-title">{highlightText(title, searchQuery)}</h3>
-          <p className="planning-card-meta">
-            {plan.model_name ? (
-              <span className="library-model-badge">{plan.model_name}</span>
+    <article className={`library-item${expanded ? " is-expanded" : ""}`}>
+      <div
+        className="library-item-row"
+        role="button"
+        tabIndex={0}
+        onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded((v) => !v);
+          }
+        }}
+      >
+        <div className="library-thumbs">
+          <div className="library-thumb library-thumb-source">
+            {sourceUrl ? (
+              <video src={sourceUrl} muted playsInline preload="metadata" />
             ) : (
-              "Sans modèle"
+              <span className="library-thumb-empty">{plan.source_status === "downloading" ? "…" : "?"}</span>
             )}
-            {" · "}
-            {plan.scheduled_at
-              ? new Date(`${plan.scheduled_at}T12:00:00`).toLocaleDateString("fr-FR")
-              : "Sans date"}
-            {" · "}
-            <span className={`planning-status planning-status-${plan.source_status}`}>{sourceStatusLabel}</span>
-          </p>
-          <a href={plan.source_url} target="_blank" rel="noopener noreferrer" className="planning-source-link">
-            {plan.source_url}
-          </a>
-        </div>
-        <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void onDelete()}>
-          Suppr.
-        </button>
-      </header>
-
-      {(plan.video_text || editingText) && (
-        <div className="library-text-block">
-          <div className="library-text-head">
-            <span className="planning-col-label">Texte du reel</span>
-            {!editingText ? (
-              <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setEditingText(true)}>
-                Modifier
-              </button>
-            ) : null}
           </div>
-          {editingText ? (
-            <>
-              <textarea
-                rows={4}
-                value={draftText}
-                onChange={(e) => setDraftText(e.target.value)}
-                className="linkscale-input library-textarea"
-              />
-              <div className="library-text-actions">
-                <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => void onSaveText()}>
-                  Enregistrer
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  disabled={busy}
-                  onClick={() => {
-                    setDraftText(plan.video_text || "");
-                    setEditingText(false);
-                  }}
-                >
-                  Annuler
-                </button>
-              </div>
-            </>
+          <div className="library-thumb library-thumb-model">
+            {modelUrl ? (
+              <video src={modelUrl} muted playsInline preload="metadata" />
+            ) : (
+              <span className="library-thumb-empty">+</span>
+            )}
+          </div>
+        </div>
+
+        <div className="library-item-main">
+          <div className="library-item-topline">
+            <h3 className="library-item-title">{highlightText(title, searchQuery)}</h3>
+            {plan.model_name ? <span className="library-model-badge">{plan.model_name}</span> : null}
+            {dateLabel ? <span className="library-item-date">{dateLabel}</span> : null}
+            <span className={`library-status-dot is-${statusDot}`} title={plan.source_status} />
+          </div>
+          {plan.video_text ? (
+            <p className="library-item-snippet">{highlightText(plan.video_text, searchQuery)}</p>
           ) : (
-            <p className="library-text-content">{highlightText(plan.video_text || "", searchQuery)}</p>
+            <p className="library-item-snippet is-muted">Pas de texte — clique pour ouvrir</p>
           )}
         </div>
-      )}
 
-      {!plan.video_text && !editingText ? (
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm library-add-text-btn"
-          disabled={busy}
-          onClick={() => setEditingText(true)}
-        >
-          + Ajouter le texte du reel
-        </button>
-      ) : null}
+        <div className="library-item-quick" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="library-icon-btn"
+            title="Télécharger original"
+            disabled={!sourceUrl || busy}
+            onClick={(e) => void onDownload("source", e)}
+          >
+            ↓O
+          </button>
+          <button
+            type="button"
+            className="library-icon-btn"
+            title="Télécharger modèle"
+            disabled={!modelUrl || busy}
+            onClick={(e) => void onDownload("model", e)}
+          >
+            ↓M
+          </button>
+          <button type="button" className="library-icon-btn is-danger" title="Supprimer" disabled={busy} onClick={(e) => void onDelete(e)}>
+            ×
+          </button>
+        </div>
+      </div>
 
-      {plan.source_error ? <p className="status err">{plan.source_error}</p> : null}
-      {error ? <p className="status err">{error}</p> : null}
+      {expanded ? (
+        <div className="library-item-detail">
+          {error ? <p className="status err">{error}</p> : null}
+          {plan.source_error ? <p className="status err">{plan.source_error}</p> : null}
 
-      <div className="planning-video-pair">
-        <div className="planning-video-col">
-          <p className="planning-col-label">Vidéo originale</p>
-          {sourceUrl ? (
-            <video src={sourceUrl} className="planning-video" controls playsInline preload="metadata" />
-          ) : (
-            <div className="planning-video-placeholder">
-              {plan.source_status === "downloading" || plan.source_status === "pending" ? (
-                <span>Téléchargement en cours…</span>
-              ) : (
-                <>
-                  <span>Indisponible</span>
-                  <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void onRefetch()}>
-                    Réessayer
+          <div className="library-detail-text">
+            <div className="library-text-head">
+              <span className="planning-col-label">Texte</span>
+              {!editingText ? (
+                <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setEditingText(true)}>
+                  Modifier
+                </button>
+              ) : null}
+            </div>
+            {editingText ? (
+              <>
+                <textarea
+                  rows={3}
+                  value={draftText}
+                  onChange={(e) => setDraftText(e.target.value)}
+                  className="linkscale-input library-textarea"
+                />
+                <div className="library-text-actions">
+                  <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => void onSaveText()}>
+                    OK
                   </button>
-                </>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={busy}
+                    onClick={() => {
+                      setDraftText(plan.video_text || "");
+                      setEditingText(false);
+                    }}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </>
+            ) : plan.video_text ? (
+              <p className="library-text-content">{highlightText(plan.video_text, searchQuery)}</p>
+            ) : (
+              <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setEditingText(true)}>
+                + Texte du reel
+              </button>
+            )}
+          </div>
+
+          <div className="library-detail-videos">
+            <div className="library-detail-video">
+              <span className="planning-col-label">Original</span>
+              {sourceUrl ? (
+                <video src={sourceUrl} className="library-detail-player" controls playsInline preload="metadata" />
+              ) : (
+                <div className="library-detail-empty">
+                  {plan.source_status === "downloading" || plan.source_status === "pending" ? (
+                    "Téléchargement…"
+                  ) : (
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void onRefetch()}>
+                      Réessayer
+                    </button>
+                  )}
+                </div>
               )}
             </div>
-          )}
+            <div className="library-detail-video">
+              <VideoDropZone
+                compact
+                label="Modèle — glisser ici"
+                onFile={(file) => void onUpload(file)}
+                uploading={uploading}
+                disabled={busy}
+                previewUrl={modelUrl}
+              />
+            </div>
+          </div>
+
+          <div className="library-detail-foot">
+            <a href={plan.source_url} target="_blank" rel="noopener noreferrer" className="planning-source-link">
+              {plan.source_url}
+            </a>
+            <div className="library-detail-dl">
+              <button type="button" className="btn btn-ghost btn-sm" disabled={!sourceUrl || busy} onClick={() => void onDownload("source")}>
+                ↓ Original
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={!modelUrl || busy} onClick={() => void onDownload("model")}>
+                ↓ Modèle
+              </button>
+            </div>
+          </div>
         </div>
-
-        <VideoDropZone
-          label="Vidéo modèle"
-          onFile={(file) => void onUpload(file)}
-          uploading={uploading}
-          disabled={busy}
-          previewUrl={modelUrl}
-        />
-      </div>
-
-      <div className="planning-download-bar">
-        <button
-          type="button"
-          className="btn btn-primary planning-download-btn"
-          disabled={!sourceUrl || busy}
-          onClick={() => void onDownload("source")}
-        >
-          Télécharger original
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary planning-download-btn"
-          disabled={!modelUrl || busy}
-          onClick={() => void onDownload("model")}
-        >
-          Télécharger modèle
-        </button>
-      </div>
+      ) : null}
     </article>
   );
 }

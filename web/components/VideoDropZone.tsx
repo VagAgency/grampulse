@@ -8,6 +8,7 @@ type Props = {
   uploading?: boolean;
   previewUrl?: string | null;
   label?: string;
+  compact?: boolean;
 };
 
 export function VideoDropZone({
@@ -16,6 +17,7 @@ export function VideoDropZone({
   uploading,
   previewUrl,
   label = "Vidéo modèle",
+  compact = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -32,10 +34,11 @@ export function VideoDropZone({
   );
 
   return (
-    <div className="planning-drop-wrap">
-      <p className="planning-drop-label">{label}</p>
+    <div className={`planning-drop-wrap${compact ? " is-compact" : ""}`}>
+      {!compact ? <p className="planning-drop-label">{label}</p> : null}
       <div
-        className={`planning-drop-zone${dragOver ? " is-dragover" : ""}${disabled ? " is-disabled" : ""}`}
+        className={`planning-drop-zone${dragOver ? " is-dragover" : ""}${disabled ? " is-disabled" : ""}${compact ? " is-compact" : ""}`}
+        title={compact ? label : undefined}
         onDragOver={(e) => {
           e.preventDefault();
           if (!disabled && !uploading) setDragOver(true);
@@ -59,11 +62,11 @@ export function VideoDropZone({
         }}
       >
         {previewUrl ? (
-          <video src={previewUrl} className="planning-drop-preview" controls playsInline preload="metadata" />
+          <video src={previewUrl} className="planning-drop-preview" muted playsInline preload="metadata" />
         ) : (
           <div className="planning-drop-placeholder">
             <span className="planning-drop-icon">+</span>
-            <span>{uploading ? "Envoi…" : "Glisser ou cliquer"}</span>
+            {!compact ? <span>{uploading ? "Envoi…" : "Glisser ou cliquer"}</span> : null}
           </div>
         )}
         <input

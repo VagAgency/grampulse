@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AppPageHeader } from "@/components/AppPageHeader";
 import { ContentPlanCard } from "@/components/ContentPlanCard";
@@ -18,6 +18,7 @@ export default function PlanningPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [plans, setPlans] = useState<ContentPlan[]>([]);
+  const [allPlans, setAllPlans] = useState<ContentPlan[]>([]);
   const [models, setModels] = useState<ModelSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -31,15 +32,32 @@ export default function PlanningPage() {
   const [filterModelId, setFilterModelId] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
+  const modelCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: allPlans.length, none: 0 };
+    for (const m of models) counts[String(m.id)] = 0;
+    for (const p of allPlans) {
+      if (p.model_id) counts[String(p.model_id)] = (counts[String(p.model_id)] || 0) + 1;
+      else counts.none += 1;
+    }
+    return counts;
+  }, [allPlans, models]);
+
   const loadPlans = useCallback(
     async (userEmail: string, q?: string, filterModel?: string) => {
       setError("");
       try {
-        const planList = await fetchContentPlans(userEmail, {
-          q: q || undefined,
-          modelId: filterModel ? Number(filterModel) : undefined,
-        });
-        setPlans(planList);
+        const filterOpts =
+          filterModel === "none"
+            ? { unassigned: true as const }
+            : filterModel
+              ? { modelId: Number(filterModel) }
+              : {};
+        const [filtered, all] = await Promise.all([
+          fetchContentPlans(userEmail, { q: q || undefined, ...filterOpts }),
+          fetchContentPlans(userEmail),
+        ]);
+        setPlans(filtered);
+        setAllPlans(all);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erreur");
       }
@@ -48,19 +66,19 @@ export default function PlanningPage() {
   );
 
   const load = useCallback(
-    async (userEmail: string, q?: string, filterModel?: string) => {
+    async (userEmail: string) => {
       setLoading(true);
       try {
         const dashboard = await fetchDashboard(userEmail, 7);
         setModels(dashboard.models || []);
-        await loadPlans(userEmail, q, filterModel);
+        await loadPlans(userEmail, searchQuery, filterModelId);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erreur");
       } finally {
         setLoading(false);
       }
     },
-    [loadPlans]
+    [loadPlans, searchQuery, filterModelId]
   );
 
   useEffect(() => {
@@ -71,7 +89,8 @@ export default function PlanningPage() {
     }
     setEmail(stored);
     void load(stored);
-  }, [router, load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
   useEffect(() => {
     if (!email) return;
@@ -124,47 +143,71 @@ export default function PlanningPage() {
   return (
     <AppShell email={email} active="planning">
       <AppPageHeader
-        eyebrow="Montage mobile"
+        eyebrow="Bibliothèque"
         title={
           <>
-            Bibliothèque <span className="gradient-text">contenu</span>
+            Contenu <span className="gradient-text">modèles</span>
           </>
         }
-        subtitle="Stocke tes vidéos, le texte du reel et la vidéo modèle — retrouve tout par recherche ou filtre modèle."
+        subtitle="Vue compacte — filtre par modèle, cherche par titre ou texte, clique une ligne pour le détail."
       />
 
       {error ? <p className="status err">{error}</p> : null}
 
-      <div className="card library-search-bar">
-        <div className="library-search-row">
-          <label className="library-search-field">
-            <span className="sr-only">Rechercher</span>
-            <input
-              type="search"
-              placeholder="Rechercher titre, texte du reel, mots-clés…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="linkscale-input"
-            />
-          </label>
-          <label className="library-filter-field">
-            <span>Modèle</span>
-            <select
-              value={filterModelId}
-              onChange={(e) => setFilterModelId(e.target.value)}
-              className="linkscale-input"
-            >
-              <option value="">Toutes les modèles</option>
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
+      <div className="library-toolbar card">
+        <div className="library-toolbar-row">
+          <input
+            type="search"
+            placeholder="Rechercher…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="linkscale-input library-search-input"
+          />
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddForm((v) => !v)}>
+            {showAddForm ? "Fermer" : "+ Vidéo"}
+          </button>
         </div>
+
+        <div className="library-model-tabs" role="tablist" aria-label="Filtrer par modèle">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filterModelId === ""}
+            className={`library-model-tab${filterModelId === "" ? " active" : ""}`}
+            onClick={() => setFilterModelId("")}
+          >
+            Toutes
+            <span className="library-model-count">{modelCounts.all}</span>
+          </button>
+          {models.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              role="tab"
+              aria-selected={filterModelId === String(m.id)}
+              className={`library-model-tab${filterModelId === String(m.id) ? " active" : ""}`}
+              onClick={() => setFilterModelId(String(m.id))}
+            >
+              {m.name}
+              <span className="library-model-count">{modelCounts[String(m.id)] || 0}</span>
+            </button>
+          ))}
+          {(modelCounts.none || 0) > 0 ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={filterModelId === "none"}
+              className={`library-model-tab${filterModelId === "none" ? " active" : ""}`}
+              onClick={() => setFilterModelId("none")}
+            >
+              Sans modèle
+              <span className="library-model-count">{modelCounts.none}</span>
+            </button>
+          ) : null}
+        </div>
+
         {hasFilters ? (
-          <p className="hint library-search-hint">
+          <p className="hint library-toolbar-hint">
             {plans.length} résultat{plans.length !== 1 ? "s" : ""}
             {" · "}
             <button
@@ -175,28 +218,17 @@ export default function PlanningPage() {
                 setFilterModelId("");
               }}
             >
-              Effacer les filtres
+              Effacer
             </button>
           </p>
         ) : null}
       </div>
 
-      <div className="library-add-toggle">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => setShowAddForm((v) => !v)}
-        >
-          {showAddForm ? "Masquer le formulaire" : "+ Ajouter une vidéo"}
-        </button>
-      </div>
-
       {showAddForm ? (
-        <form className="card planning-create-form" onSubmit={(e) => void onCreate(e)}>
-          <h2 className="planning-form-title">Nouvelle vidéo</h2>
+        <form className="card planning-create-form is-compact" onSubmit={(e) => void onCreate(e)}>
           <div className="planning-form-grid">
             <label className="planning-field planning-field-wide">
-              <span>Lien de la vidéo (Instagram, TikTok…)</span>
+              <span>Lien</span>
               <input
                 type="url"
                 required
@@ -207,23 +239,13 @@ export default function PlanningPage() {
               />
             </label>
             <label className="planning-field">
-              <span>Titre (optionnel)</span>
-              <input
-                type="text"
-                placeholder="Reel du lundi"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="linkscale-input"
-              />
+              <span>Titre</span>
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="linkscale-input" />
             </label>
             <label className="planning-field">
               <span>Modèle</span>
-              <select
-                value={modelId}
-                onChange={(e) => setModelId(e.target.value)}
-                className="linkscale-input"
-              >
-                <option value="">— Aucune —</option>
+              <select value={modelId} onChange={(e) => setModelId(e.target.value)} className="linkscale-input">
+                <option value="">—</option>
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
@@ -232,27 +254,21 @@ export default function PlanningPage() {
               </select>
             </label>
             <label className="planning-field">
-              <span>Date prévue</span>
-              <input
-                type="date"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                className="linkscale-input"
-              />
+              <span>Date</span>
+              <input type="date" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className="linkscale-input" />
             </label>
             <label className="planning-field planning-field-wide">
-              <span>Texte de la vidéo</span>
+              <span>Texte du reel</span>
               <textarea
-                rows={5}
-                placeholder="Colle ici le script, la voix off ou les phrases clés du reel pour retrouver cette vidéo plus tard…"
+                rows={3}
                 value={videoText}
                 onChange={(e) => setVideoText(e.target.value)}
                 className="linkscale-input library-textarea"
               />
             </label>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={creating}>
-            {creating ? "Ajout…" : "Ajouter à la bibliothèque"}
+          <button type="submit" className="btn btn-primary btn-sm" disabled={creating}>
+            {creating ? "…" : "Ajouter"}
           </button>
         </form>
       ) : null}
@@ -260,13 +276,9 @@ export default function PlanningPage() {
       {loading ? (
         <p className="hint">Chargement…</p>
       ) : plans.length === 0 ? (
-        <p className="hint">
-          {hasFilters
-            ? "Aucune vidéo ne correspond à ta recherche."
-            : "Bibliothèque vide — ajoute ta première vidéo."}
-        </p>
+        <p className="hint">{hasFilters ? "Aucun résultat." : "Bibliothèque vide."}</p>
       ) : (
-        <div className="planning-list">
+        <div className="library-list">
           {plans.map((plan) => (
             <ContentPlanCard
               key={plan.id}

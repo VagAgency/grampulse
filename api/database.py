@@ -1210,11 +1210,14 @@ def list_content_plans(
     *,
     query: str | None = None,
     model_id: int | None = None,
+    unassigned_only: bool = False,
 ) -> list[dict]:
     sql_parts = ["SELECT * FROM content_plans WHERE user_email = ?"]
     params: list = [user_email.strip().lower()]
 
-    if model_id is not None:
+    if unassigned_only:
+        sql_parts.append("AND model_id IS NULL")
+    elif model_id is not None:
         sql_parts.append("AND model_id = ?")
         params.append(model_id)
 
