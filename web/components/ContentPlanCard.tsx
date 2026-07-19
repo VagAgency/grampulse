@@ -46,6 +46,7 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
   const [error, setError] = useState("");
   const [editingText, setEditingText] = useState(false);
   const [draftText, setDraftText] = useState(plan.video_text || "");
+  const [copied, setCopied] = useState(false);
 
   const sourceUrl = planSourceMediaUrl(plan);
   const modelUrl = planModelMediaUrl(plan);
@@ -124,6 +125,17 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
     }
   }
 
+  async function onCopyLink(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(plan.source_url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Impossible de copier le lien.");
+    }
+  }
+
   const statusDot =
     plan.source_status === "ready"
       ? "ready"
@@ -177,6 +189,15 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
         </div>
 
         <div className="library-item-quick" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="library-icon-btn"
+            title={copied ? "Copié !" : "Copier le lien"}
+            disabled={busy}
+            onClick={(e) => void onCopyLink(e)}
+          >
+            {copied ? "✓" : "⎘"}
+          </button>
           <button
             type="button"
             className="library-icon-btn"
@@ -279,9 +300,14 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
           </div>
 
           <div className="library-detail-foot">
-            <a href={plan.source_url} target="_blank" rel="noopener noreferrer" className="planning-source-link">
-              {plan.source_url}
-            </a>
+            <div className="library-source-link-row">
+              <a href={plan.source_url} target="_blank" rel="noopener noreferrer" className="planning-source-link">
+                {plan.source_url}
+              </a>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void onCopyLink()}>
+                {copied ? "Copié !" : "Copier le lien"}
+              </button>
+            </div>
             <div className="library-detail-dl">
               <button type="button" className="btn btn-ghost btn-sm" disabled={!sourceUrl || busy} onClick={() => void onDownload("source")}>
                 ↓ Original

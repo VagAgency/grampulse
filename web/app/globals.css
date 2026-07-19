@@ -4787,6 +4787,21 @@ input:focus {
   margin-top: 8px;
 }
 
+.library-source-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.library-source-link-row .planning-source-link {
+  max-width: none;
+  flex: 1;
+  min-width: 0;
+}
+
 .library-detail-dl {
   display: flex;
   gap: 6px;
