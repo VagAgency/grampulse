@@ -4479,3 +4479,211 @@ input:focus {
     opacity: 0.5 !important;
   }
 }
+
+/* Content planning */
+.planning-create-form {
+  margin-bottom: 24px;
+  padding: 20px;
+}
+
+.planning-form-title {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+}
+
+.planning-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.planning-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.planning-field-wide {
+  grid-column: 1 / -1;
+}
+
+.planning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.planning-card {
+  padding: 18px;
+}
+
+.planning-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.planning-card-title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+.planning-card-meta {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.planning-source-link {
+  font-size: 0.78rem;
+  word-break: break-all;
+  opacity: 0.75;
+}
+
+.planning-status-downloading,
+.planning-status-pending {
+  color: var(--accent);
+}
+
+.planning-status-ready {
+  color: #22c55e;
+}
+
+.planning-status-failed {
+  color: #ef4444;
+}
+
+.planning-video-pair {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 16px;
+  align-items: start;
+}
+
+.planning-video-col,
+.planning-drop-wrap {
+  min-width: 0;
+}
+
+.planning-col-label,
+.planning-drop-label {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.planning-video {
+  width: 100%;
+  max-height: 360px;
+  border-radius: var(--radius);
+  background: #000;
+  aspect-ratio: 9 / 16;
+  object-fit: contain;
+}
+
+.planning-video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 280px;
+  border-radius: var(--radius);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.planning-drop-zone {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: var(--radius);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.planning-drop-zone.is-dragover {
+  border-color: var(--accent);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.planning-drop-zone.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.planning-drop-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 6px;
+  padding: 12px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.planning-drop-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.planning-drop-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.planning-drop-input {
+  display: none;
+}
+
+.planning-download-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.planning-download-btn {
+  width: 100%;
+  min-height: 44px;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 768px) {
+  .planning-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .planning-video-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .planning-drop-zone {
+    width: 100%;
+    height: 200px;
+  }
+
+  .planning-download-bar {
+    position: sticky;
+    bottom: 8px;
+    z-index: 5;
+    padding-top: 8px;
+  }
+}

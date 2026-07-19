@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -177,6 +178,28 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL
             )
             """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS content_plans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email TEXT NOT NULL,
+                model_id INTEGER,
+                title TEXT,
+                source_url TEXT NOT NULL,
+                scheduled_at TEXT,
+                source_status TEXT NOT NULL DEFAULT 'pending',
+                source_error TEXT,
+                model_status TEXT NOT NULL DEFAULT 'empty',
+                access_token TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (model_id) REFERENCES models(id)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_content_plans_user ON content_plans(user_email, updated_at DESC)"
         )
 
 
@@ -1132,3 +1155,141 @@ def import_user_bundle(payload: dict) -> dict:
     }
     _notify_persist(email)
     return result
+
+
+# --- Content planning ---
+
+
+def create_content_plan(
+    *,
+    user_email: str,
+    source_url: str,
+    title: str | None = None,
+    model_id: int | None = None,
+    scheduled_at: str | None = None,
+) -> dict:
+    ensure_user(user_email)
+    now = _now()
+    token = secrets.token_urlsafe(24)
+    with get_db() as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO content_plans (
+                user_email, model_id, title, source_url, scheduled_at,
+                source_status, model_status, access_token, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, 'pending', 'empty', ?, ?, ?)
+            """,
+            (
+                user_email.strip().lower(),
+                model_id,
+                (title or "").strip() or None,
+                source_url.strip(),
+                scheduled_at,
+                token,
+                now,
+                now,
+            ),
+        )
+        row = conn.execute(
+            "SELECT * FROM content_plans WHERE id = ?",
+            (cur.lastrowid,),
+        ).fetchone()
+        result = dict(row)
+    _notify_persist(user_email)
+    return result
+
+
+def list_content_plans(user_email: str) -> list[dict]:
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM content_plans
+            WHERE user_email = ?
+            ORDER BY COALESCE(scheduled_at, updated_at) DESC, id DESC
+            """,
+            (user_email.strip().lower(),),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_content_plan(user_email: str, plan_id: int) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT * FROM content_plans WHERE id = ? AND user_email = ?",
+            (plan_id, user_email.strip().lower()),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def get_content_plan_by_id(plan_id: int) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT * FROM content_plans WHERE id = ?",
+            (plan_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def update_content_plan(
+    user_email: str,
+    plan_id: int,
+    *,
+    title: str | None = None,
+    model_id: int | None = None,
+    scheduled_at: str | None = None,
+    source_status: str | None = None,
+    source_error: str | None = None,
+    model_status: str | None = None,
+) -> dict:
+    existing = get_content_plan(user_email, plan_id)
+    if not existing:
+        raise ValueError("Plan introuvable")
+
+    fields: list[str] = []
+    values: list = []
+    if title is not None:
+        fields.append("title = ?")
+        values.append(title.strip() or None)
+    if model_id is not None:
+        fields.append("model_id = ?")
+        values.append(model_id)
+    if scheduled_at is not None:
+        fields.append("scheduled_at = ?")
+        values.append(scheduled_at or None)
+    if source_status is not None:
+        fields.append("source_status = ?")
+        values.append(source_status)
+    if source_error is not None:
+        fields.append("source_error = ?")
+        values.append(source_error)
+    if model_status is not None:
+        fields.append("model_status = ?")
+        values.append(model_status)
+
+    fields.append("updated_at = ?")
+    values.append(_now())
+    values.extend([plan_id, user_email.strip().lower()])
+
+    with get_db() as conn:
+        conn.execute(
+            f"UPDATE content_plans SET {', '.join(fields)} WHERE id = ? AND user_email = ?",
+            values,
+        )
+        row = conn.execute(
+            "SELECT * FROM content_plans WHERE id = ?",
+            (plan_id,),
+        ).fetchone()
+        result = dict(row)
+    _notify_persist(user_email)
+    return result
+
+
+def delete_content_plan(user_email: str, plan_id: int) -> bool:
+    with get_db() as conn:
+        cur = conn.execute(
+            "DELETE FROM content_plans WHERE id = ? AND user_email = ?",
+            (plan_id, user_email.strip().lower()),
+        )
+    _notify_persist(user_email)
+    return cur.rowcount > 0
+

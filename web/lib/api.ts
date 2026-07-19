@@ -854,3 +854,104 @@ export function followersEstHint(source?: LeaderboardVideo["followers_gained_sou
   if (source === "heuristic") return "Estimation basée sur likes et commentaires (Instagram ne fournit pas ce chiffre).";
   return "Estimation indisponible.";
 }
+
+// --- Content planning ---
+
+export type ContentPlan = {
+  id: number;
+  user_email: string;
+  model_id: number | null;
+  model_name?: string | null;
+  title: string | null;
+  source_url: string;
+  scheduled_at: string | null;
+  source_status: "pending" | "downloading" | "ready" | "failed";
+  source_error?: string | null;
+  model_status: "empty" | "ready";
+  access_token: string;
+  source_ready: boolean;
+  model_ready: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export function planSourceMediaUrl(plan: ContentPlan, download = false): string | null {
+  if (!plan.source_ready) return null;
+  const q = new URLSearchParams({ token: plan.access_token });
+  if (download) q.set("download", "1");
+  return `${API}/planning/${plan.id}/media/source?${q}`;
+}
+
+export function planModelMediaUrl(plan: ContentPlan, download = false): string | null {
+  if (!plan.model_ready) return null;
+  const q = new URLSearchParams({ token: plan.access_token });
+  if (download) q.set("download", "1");
+  return `${API}/planning/${plan.id}/media/model?${q}`;
+}
+
+export async function fetchContentPlans(email: string): Promise<ContentPlan[]> {
+  const res = await fetchApi(`${API}/planning`, { headers: authHeaders(email) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Planification indisponible.");
+  return data.plans;
+}
+
+export async function createContentPlan(
+  email: string,
+  payload: { source_url: string; title?: string; model_id?: number; scheduled_at?: string }
+): Promise<ContentPlan> {
+  const res = await fetchApi(`${API}/planning`, {
+    method: "POST",
+    headers: authHeaders(email),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Création impossible.");
+  return data.plan;
+}
+
+export async function deleteContentPlan(email: string, planId: number): Promise<void> {
+  const res = await fetchApi(`${API}/planning/${planId}`, {
+    method: "DELETE",
+    headers: authHeaders(email),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Suppression impossible.");
+}
+
+export async function refetchContentPlanSource(email: string, planId: number): Promise<void> {
+  const res = await fetchApi(`${API}/planning/${planId}/refetch`, {
+    method: "POST",
+    headers: authHeaders(email),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Téléchargement impossible.");
+}
+
+export async function uploadPlanModelVideo(email: string, planId: number, file: File): Promise<ContentPlan> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetchApi(`${API}/planning/${planId}/model-video`, {
+    method: "POST",
+    headers: { "X-User-Email": email },
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Upload impossible.");
+  return data.plan;
+}
+
+export async function downloadPlanMedia(url: string, filename: string): Promise<void> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Téléchargement impossible.");
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
+}

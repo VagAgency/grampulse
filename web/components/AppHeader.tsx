@@ -7,7 +7,7 @@ import { BulkRefreshProgress, RefreshDailyBanner } from "@/components/BulkRefres
 import { HeaderActions } from "@/components/HeaderActions";
 import { clearSession } from "@/lib/api";
 
-export type NavKey = "dashboard" | "leaderboard" | "equipe" | "suivi";
+export type NavKey = "dashboard" | "leaderboard" | "equipe" | "suivi" | "planning";
 
 type Props = {
   email: string | null;
@@ -19,6 +19,7 @@ const NAV: { key: NavKey; href: string; label: string }[] = [
   { key: "leaderboard", href: "/leaderboard", label: "Top vidéos" },
   { key: "equipe", href: "/equipe", label: "Rang équipe" },
   { key: "suivi", href: "/suivi", label: "Suivi" },
+  { key: "planning", href: "/planning", label: "Planning" },
 ];
 
 export function AppHeader({ email, active }: Props) {
