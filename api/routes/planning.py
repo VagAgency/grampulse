@@ -4,6 +4,7 @@ import logging
 import tempfile
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, BackgroundTasks, File, Header, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
@@ -18,6 +19,7 @@ from planning_storage import (
     model_video_path,
     source_video_path,
     write_model_video,
+    write_source_video,
 )
 
 router = APIRouter(prefix="/planning", tags=["planning"])
@@ -62,6 +64,11 @@ def _verify_token(plan: dict, token: str | None) -> None:
         raise HTTPException(status_code=403, detail="Accès refusé.")
 
 
+def _is_instagram_url(url: str) -> bool:
+    host = urlparse(url.strip()).netloc.lower()
+    return host.endswith("instagram.com") or host.endswith("instagr.am")
+
+
 def _enrich_plan(plan: dict) -> dict:
     email = plan["user_email"]
     plan_id = plan["id"]
@@ -77,6 +84,9 @@ def _enrich_plan(plan: dict) -> dict:
 def _fetch_source_background(email: str, plan_id: int) -> None:
     plan = db.get_content_plan(email, plan_id)
     if not plan:
+        return
+    if _is_instagram_url(plan["source_url"]):
+        db.update_content_plan(email, plan_id, source_status="link", source_error=None)
         return
     db.update_content_plan(email, plan_id, source_status="downloading", source_error=None)
     try:
@@ -119,6 +129,10 @@ def create_plan(
         scheduled_at=body.scheduled_at,
         video_text=body.video_text,
     )
+    if _is_instagram_url(url):
+        plan = db.update_content_plan(email, plan["id"], source_status="link", source_error=None)
+        return {"plan": _enrich_plan(plan), "fetching": False}
+
     background_tasks.add_task(_fetch_source_background, email, plan["id"])
     return {"plan": _enrich_plan(plan), "fetching": True}
 
@@ -161,8 +175,58 @@ def refetch_source(
 ):
     email = _user_email(x_user_email)
     plan = _get_plan_or_404(email, plan_id)
+    if _is_instagram_url(plan["source_url"]):
+        updated = db.update_content_plan(email, plan_id, source_status="link", source_error=None)
+        return {"ok": True, "fetching": False, "plan": _enrich_plan(updated)}
+
     background_tasks.add_task(_fetch_source_background, email, plan["id"])
     return {"ok": True, "fetching": True}
+
+
+@router.post("/{plan_id}/source-video")
+async def upload_source_video(
+    plan_id: int,
+    file: UploadFile = File(...),
+    x_user_email: Optional[str] = Header(default=None),
+):
+    email = _user_email(x_user_email)
+    _get_plan_or_404(email, plan_id)
+
+    filename = (file.filename or "").lower()
+    is_video = (file.content_type or "").startswith("video/") or filename.endswith(
+        (".mp4", ".mov", ".webm", ".m4v", ".mkv")
+    )
+    if not is_video:
+        raise HTTPException(status_code=400, detail="Fichier vidéo requis (MP4, MOV, WebM).")
+
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".upload") as tmp:
+            tmp_path = Path(tmp.name)
+            total = 0
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > MAX_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Vidéo trop lourde (max {MAX_UPLOAD_BYTES // (1024 * 1024)} Mo).",
+                    )
+                tmp.write(chunk)
+
+        write_source_video(email, plan_id, tmp_path)
+        updated = db.update_content_plan(
+            email,
+            plan_id,
+            source_status="ready",
+            source_error=None,
+        )
+        return {"plan": _enrich_plan(updated)}
+    finally:
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
 
 
 @router.post("/{plan_id}/model-video")

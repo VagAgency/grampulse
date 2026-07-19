@@ -57,6 +57,19 @@ Test : `https://grampulse-api.onrender.com/health`
 
 `GRAMPULSE_DB` est déjà défini dans `render.yaml` → `/var/data/grampulse.db` (disque persistant).
 
+### Disque persistant (obligatoire pour garder tes comptes)
+
+Sans disque, Render stocke la base dans `/tmp` : **chaque redéploiement efface tout**.
+
+1. Render → service `grampulse-api` → **Disks** → ajoute un disque :
+   - **Mount path** : `/var/data`
+   - **Size** : 1 GB
+2. Vérifie que `GRAMPULSE_DB` = `/var/data/grampulse.db` (et **pas** `/tmp/grampulse.db`)
+3. Redéploie une fois
+4. Contrôle : `GET https://api.grampulse.app/health` → `persist.volume_mounted: true` et `db_path: /var/data/grampulse.db`
+
+À chaque ajout/suppression de compte, l’API sauvegarde aussi un fichier JSON sur ce disque (`/var/data/backups/…`) pour récupération automatique au démarrage.
+
 ---
 
 ## 4. Domaine API (OVH + Render)

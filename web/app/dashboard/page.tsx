@@ -29,6 +29,7 @@ import {
   sumDailyViews,
   sumDailyClicks,
   sumLatestFollowers,
+  DEFAULT_CHART_DAYS,
 } from "@/lib/api";
 
 type ChartMode = "views" | "followers" | "clicks";
@@ -47,7 +48,7 @@ export default function DashboardPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [apifyMode, setApifyMode] = useState(false);
   const [providerLabel, setProviderLabel] = useState("Mode démo");
-  const [chartDays, setChartDays] = useState(30);
+  const [chartDays, setChartDays] = useState(DEFAULT_CHART_DAYS);
   const [chartMode, setChartMode] = useState<ChartMode>("views");
 
   const load = useCallback(async (userEmail: string) => {

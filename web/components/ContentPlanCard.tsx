@@ -9,6 +9,7 @@ import {
   refetchContentPlanSource,
   updateContentPlan,
   uploadPlanModelVideo,
+  uploadPlanSourceVideo,
 } from "@/lib/api";
 import { VideoDropZone } from "@/components/VideoDropZone";
 import { useState, type ReactNode } from "react";
@@ -19,6 +20,15 @@ type Props = {
   searchQuery?: string;
   onChange: () => void;
 };
+
+function isInstagramUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host.endsWith("instagram.com") || host.endsWith("instagr.am");
+  } catch {
+    return false;
+  }
+}
 
 function highlightText(text: string, query: string): ReactNode {
   const q = query.trim();
@@ -41,7 +51,8 @@ function highlightText(text: string, query: string): ReactNode {
 
 export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingModel, setUploadingModel] = useState(false);
+  const [uploadingSource, setUploadingSource] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [editingText, setEditingText] = useState(false);
@@ -50,13 +61,14 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
 
   const sourceUrl = planSourceMediaUrl(plan);
   const modelUrl = planModelMediaUrl(plan);
+  const isInstagram = isInstagramUrl(plan.source_url);
   const title = plan.title || "Sans titre";
   const dateLabel = plan.scheduled_at
     ? new Date(`${plan.scheduled_at}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
     : null;
 
-  async function onUpload(file: File) {
-    setUploading(true);
+  async function onUploadModel(file: File) {
+    setUploadingModel(true);
     setError("");
     try {
       await uploadPlanModelVideo(email, plan.id, file);
@@ -64,7 +76,20 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload impossible.");
     } finally {
-      setUploading(false);
+      setUploadingModel(false);
+    }
+  }
+
+  async function onUploadSource(file: File) {
+    setUploadingSource(true);
+    setError("");
+    try {
+      await uploadPlanSourceVideo(email, plan.id, file);
+      onChange();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload impossible.");
+    } finally {
+      setUploadingSource(false);
     }
   }
 
@@ -137,11 +162,15 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
   }
 
   const statusDot =
-    plan.source_status === "ready"
+    sourceUrl || plan.source_status === "ready"
       ? "ready"
-      : plan.source_status === "failed"
-        ? "failed"
-        : "pending";
+      : isInstagram || plan.source_status === "link"
+        ? "link"
+        : plan.source_status === "failed"
+          ? "failed"
+          : "pending";
+
+  const showSourceError = plan.source_error && !isInstagram;
 
   return (
     <article className={`library-item${expanded ? " is-expanded" : ""}`}>
@@ -162,7 +191,7 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
             {sourceUrl ? (
               <video src={sourceUrl} muted playsInline preload="metadata" />
             ) : (
-              <span className="library-thumb-empty">{plan.source_status === "downloading" ? "…" : "?"}</span>
+              <span className="library-thumb-empty">{isInstagram ? "⎘" : plan.source_status === "downloading" ? "…" : "?"}</span>
             )}
           </div>
           <div className="library-thumb library-thumb-model">
@@ -184,14 +213,16 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
           {plan.video_text ? (
             <p className="library-item-snippet">{highlightText(plan.video_text, searchQuery)}</p>
           ) : (
-            <p className="library-item-snippet is-muted">Pas de texte — clique pour ouvrir</p>
+            <p className="library-item-snippet is-muted">
+              {isInstagram && !sourceUrl ? "Lien Instagram — clique pour copier" : "Pas de texte — clique pour ouvrir"}
+            </p>
           )}
         </div>
 
         <div className="library-item-quick" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            className="library-icon-btn"
+            className={`library-icon-btn${copied ? " is-active" : ""}`}
             title={copied ? "Copié !" : "Copier le lien"}
             disabled={busy}
             onClick={(e) => void onCopyLink(e)}
@@ -225,7 +256,13 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
       {expanded ? (
         <div className="library-item-detail">
           {error ? <p className="status err">{error}</p> : null}
-          {plan.source_error ? <p className="status err">{plan.source_error}</p> : null}
+          {showSourceError ? <p className="status err">{plan.source_error}</p> : null}
+
+          {isInstagram && !sourceUrl ? (
+            <p className="library-hint">
+              Copie le lien Instagram, télécharge la vidéo où tu veux, puis dépose-la dans « Original ».
+            </p>
+          ) : null}
 
           <div className="library-detail-text">
             <div className="library-text-head">
@@ -272,27 +309,27 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
 
           <div className="library-detail-videos">
             <div className="library-detail-video">
-              <span className="planning-col-label">Original</span>
               {sourceUrl ? (
-                <video src={sourceUrl} className="library-detail-player" controls playsInline preload="metadata" />
+                <>
+                  <span className="planning-col-label">Original</span>
+                  <video src={sourceUrl} className="library-detail-player" controls playsInline preload="metadata" />
+                </>
               ) : (
-                <div className="library-detail-empty">
-                  {plan.source_status === "downloading" || plan.source_status === "pending" ? (
-                    "Téléchargement…"
-                  ) : (
-                    <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void onRefetch()}>
-                      Réessayer
-                    </button>
-                  )}
-                </div>
+                <VideoDropZone
+                  compact
+                  label={isInstagram ? "Original — glisser ici" : "Original — glisser ici"}
+                  onFile={(file) => void onUploadSource(file)}
+                  uploading={uploadingSource}
+                  disabled={busy}
+                />
               )}
             </div>
             <div className="library-detail-video">
               <VideoDropZone
                 compact
                 label="Modèle — glisser ici"
-                onFile={(file) => void onUpload(file)}
-                uploading={uploading}
+                onFile={(file) => void onUploadModel(file)}
+                uploading={uploadingModel}
                 disabled={busy}
                 previewUrl={modelUrl}
               />
@@ -304,11 +341,16 @@ export function ContentPlanCard({ email, plan, searchQuery = "", onChange }: Pro
               <a href={plan.source_url} target="_blank" rel="noopener noreferrer" className="planning-source-link">
                 {plan.source_url}
               </a>
-              <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void onCopyLink()}>
+              <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => void onCopyLink()}>
                 {copied ? "Copié !" : "Copier le lien"}
               </button>
             </div>
             <div className="library-detail-dl">
+              {!isInstagram && !sourceUrl ? (
+                <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void onRefetch()}>
+                  Réessayer
+                </button>
+              ) : null}
               <button type="button" className="btn btn-ghost btn-sm" disabled={!sourceUrl || busy} onClick={() => void onDownload("source")}>
                 ↓ Original
               </button>

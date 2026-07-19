@@ -60,3 +60,13 @@ def write_model_video(email: str, plan_id: int, src: Path) -> Path:
         dest.unlink()
     shutil.copy2(src, dest)
     return dest
+
+
+def write_source_video(email: str, plan_id: int, src: Path) -> Path:
+    directory = ensure_plan_dir(email, plan_id)
+    for existing in directory.glob("source.*"):
+        if existing.suffix.lower() in ALLOWED_EXTENSIONS:
+            existing.unlink()
+    dest = directory / "source.mp4"
+    shutil.copy2(src, dest)
+    return dest

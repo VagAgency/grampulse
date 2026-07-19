@@ -14,6 +14,7 @@ import {
   formatPeriodLabel,
   getStoredEmail,
   VideoSortMode,
+  DEFAULT_CHART_DAYS,
 } from "@/lib/api";
 
 const MAX_FETCH_DAYS = 90;
@@ -24,7 +25,7 @@ export default function LeaderboardPage() {
   const [data, setData] = useState<GlobalDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [chartDays, setChartDays] = useState(30);
+  const [chartDays, setChartDays] = useState(DEFAULT_CHART_DAYS);
   const [videoMode, setVideoMode] = useState<VideoSortMode>("performance");
 
   const load = useCallback(async (userEmail: string) => {

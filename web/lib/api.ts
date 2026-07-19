@@ -866,7 +866,7 @@ export type ContentPlan = {
   video_text: string | null;
   source_url: string;
   scheduled_at: string | null;
-  source_status: "pending" | "downloading" | "ready" | "failed";
+  source_status: "pending" | "downloading" | "ready" | "failed" | "link";
   source_error?: string | null;
   model_status: "empty" | "ready";
   access_token: string;
@@ -962,6 +962,19 @@ export async function uploadPlanModelVideo(email: string, planId: number, file: 
   const form = new FormData();
   form.append("file", file);
   const res = await fetchApi(`${API}/planning/${planId}/model-video`, {
+    method: "POST",
+    headers: { "X-User-Email": email },
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Upload impossible.");
+  return data.plan;
+}
+
+export async function uploadPlanSourceVideo(email: string, planId: number, file: File): Promise<ContentPlan> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetchApi(`${API}/planning/${planId}/source-video`, {
     method: "POST",
     headers: { "X-User-Email": email },
     body: form,

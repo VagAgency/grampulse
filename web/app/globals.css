@@ -4707,6 +4707,25 @@ input:focus {
   background: #ef4444;
 }
 
+.library-status-dot.is-link {
+  background: #7c9cff;
+}
+
+.library-hint {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(124, 156, 255, 0.12);
+  border: 1px solid rgba(124, 156, 255, 0.25);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.library-icon-btn.is-active {
+  color: #7cffb2;
+  border-color: rgba(124, 255, 178, 0.35);
+}
+
 .library-item-quick {
   display: flex;
   gap: 4px;

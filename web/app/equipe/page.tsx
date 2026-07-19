@@ -18,6 +18,7 @@ import {
   formatPercent,
   formatPeriodLabel,
   getStoredEmail,
+  DEFAULT_CHART_DAYS,
 } from "@/lib/api";
 
 export default function EquipePage() {
@@ -27,7 +28,7 @@ export default function EquipePage() {
   const [vas, setVas] = useState<VaMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [chartDays, setChartDays] = useState(30);
+  const [chartDays, setChartDays] = useState(DEFAULT_CHART_DAYS);
   const [newVaName, setNewVaName] = useState("");
   const [newVaEmoji, setNewVaEmoji] = useState("✨");
   const [creating, setCreating] = useState(false);
